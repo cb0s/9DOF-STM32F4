@@ -13,6 +13,8 @@
 namespace LSM9DS1_I2C {
 	extern I2cDevice GYRO_ACCEL;
 	extern I2cDevice MAGNETOMETER;
+
+	extern uint32_t FREQ;
 }
 
 #endif /* SENSORS_I2C_LSM9DS1_I2C_H_ */

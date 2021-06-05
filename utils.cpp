@@ -7,24 +7,10 @@
 #include "utils.h"
 
 
-ContinuousThread::ContinuousThread(unsigned long delay, RODOS::HAL_GPIO LED, const char* name) : m_DELAY(delay), m_LED(LED), Thread(name)
+inline void UTILS::clearBuffer(uint8_t *buffer, size_t length)
 {
-	LED.init(true, 1, 0);
-}
-
-void ContinuousThread::run()
-{
-	unsigned long currentTime = RODOS::NOW();
-	while(onLoop(currentTime))
+	for (size_t i = 0 ; i < length; i++)
 	{
-		currentTime += m_DELAY;
-		AT(currentTime);
+		buffer[i] = 0x0;
 	}
-
-	cleanUp();
-}
-
-void ContinuousThread::toggleLed()
-{
-	m_LED.setPins(~m_LED.readPins());
 }

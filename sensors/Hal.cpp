@@ -7,12 +7,27 @@
 
 #include "Hal.h"
 
-Hal::Hal()
+Hal::Hal(HAL_I2C *i2cDevice) : I2C_DEVICE(i2cDevice)
+{}
+
+bool inline Hal::init(uint32_t i2cFreq)
 {
-	init();
+	UTILS::clearBuffer(Hal::writeBuffer, WRITE_BUFFER_LENGTH);
+	return (initI2c(i2cFreq) == 0) && setup();
 }
 
-bool Hal::checkRegister(const Register *reg, const REGISTER_ACCESS requestedAccess, const Register **allowedRegs, const size_t allowedRegsSize)
+bool inline Hal::initI2c(uint32_t freq)
+{
+	if (Hal::I2C_DEVICE == NULL || Hal::I2C_DEVICE == nullptr)
+	{
+		return false;
+	}
+	I2C_DEVICE->reset();
+	return I2C_DEVICE->init(freq) && setupI2c();
+}
+
+bool Hal::checkRegister(const Register *reg, const REGISTER_ACCESS requestedAccess, const Register **allowedRegs,
+		const size_t allowedRegsSize)
 {
 	for (int i = 0; i < allowedRegsSize; i++)
 	{
@@ -26,15 +41,15 @@ bool Hal::checkRegister(const Register *reg, const REGISTER_ACCESS requestedAcce
 	return false;
 }
 
-bool Hal::checkI2cAccess(I2cDevice *device, Register *reg, uint8_t accessCount, REGISTER_ACCESS access)
+bool Hal::checkI2cAccess(I2cDevice *counterPart, Register *reg, uint8_t accessCount, REGISTER_ACCESS access)
 {
 	uint8_t lastAddr = 0x0;
 	size_t addrIndex = SIZE_MAX;
 	const Register *regToTest = nullptr;
 
-	for (size_t i = 0; i < device->AVAILABLE_REGS_COUNT; i++)
+	for (size_t i = 0; i < counterPart->AVAILABLE_REGS_COUNT; i++)
 	{
-		regToTest = device->AVAILABLE_REGS[i];
+		regToTest = counterPart->AVAILABLE_REGS[i];
 		if (reg == regToTest)
 		{
 			lastAddr = regToTest->ADDRESS;
@@ -43,16 +58,16 @@ bool Hal::checkI2cAccess(I2cDevice *device, Register *reg, uint8_t accessCount, 
 		}
 	}
 
-	if (regToTest == nullptr || lastAddr + accessCount > device->AVAILABLE_REGS_COUNT)
+	if (regToTest == nullptr || lastAddr + accessCount > counterPart->AVAILABLE_REGS_COUNT)
 	{
 		return false;
 	}
 
 	size_t i = 1;
 	do {
-		bool result = Hal::checkRegister(regToTest, access, device->AVAILABLE_REGS, device->AVAILABLE_REGS_COUNT);
+		bool result = Hal::checkRegister(regToTest, access, counterPart->AVAILABLE_REGS, counterPart->AVAILABLE_REGS_COUNT);
 
-		regToTest = device->AVAILABLE_REGS[addrIndex + i];
+		regToTest = counterPart->AVAILABLE_REGS[addrIndex + i];
 		if (!result || (lastAddr - regToTest->ADDRESS) < -1)
 		{
 			return false;
@@ -63,12 +78,61 @@ bool Hal::checkI2cAccess(I2cDevice *device, Register *reg, uint8_t accessCount, 
 	return true;
 }
 
-bool Hal::readI2c(I2cDevice *device, Register *reg, uint8_t dataBuffer[], size_t bufferSize)
+bool Hal::readI2c(I2cDevice *device, Register *reg, uint8_t dataBuffer[], size_t bytesToRead)
 {
-	return Hal::checkI2cAccess(device, reg, bufferSize, REGISTER_ACCESS::READ_ONLY);
+	if (!Hal::checkI2cAccess(device, reg, bytesToRead, REGISTER_ACCESS::READ_ONLY))
+	{
+		return false;
+	}
+
+	writeBuffer[0] = reg->ADDRESS;
+
+	if (I2C_DEVICE->writeRead(device->ADDRESS, writeBuffer, 1, dataBuffer, bytesToRead) != bytesToRead)
+	{
+		return false;
+	}
+
+	return true;
 }
 
-bool Hal::writeI2c(I2cDevice *device, Register *reg, uint8_t dataBuffer[], size_t bufferSize)
+bool Hal::writeI2c(I2cDevice *device, Register *reg, uint8_t dataBuffer[], size_t bytesToWrite)
 {
-	return Hal::checkI2cAccess(device, reg, bufferSize, REGISTER_ACCESS::WRITE_ONLY);
+	if (!Hal::checkI2cAccess(device, reg, bytesToWrite, REGISTER_ACCESS::WRITE_ONLY))
+	{
+		return false;
+	}
+
+	uint8_t lastAddress = reg->ADDRESS;
+
+	for (uint8_t i = 0; i < bytesToWrite / (WRITE_BUFFER_LENGTH-1); i++)
+	{
+		writeBuffer[0] = lastAddress++;
+		for (uint8_t j = 1; j < WRITE_BUFFER_LENGTH; j++)
+		{
+			writeBuffer[j] = dataBuffer[i * (WRITE_BUFFER_LENGTH-1) + j-1];
+		}
+
+		if (!I2C_DEVICE->write(device->ADDRESS, writeBuffer, WRITE_BUFFER_LENGTH) == WRITE_BUFFER_LENGTH - 1)
+		{
+			return false;
+		}
+	}
+
+	if (bytesToWrite % WRITE_BUFFER_LENGTH != 0)
+	{
+		writeBuffer[0] = lastAddress;
+		uint8_t mod = bytesToWrite % (WRITE_BUFFER_LENGTH - 1);
+
+		for (uint8_t i = 1; i < mod; i++)
+		{
+			writeBuffer[i] = dataBuffer[bytesToWrite - (mod-i+1)];
+		}
+
+		if (!I2C_DEVICE->write(device->ADDRESS, writeBuffer, WRITE_BUFFER_LENGTH) == WRITE_BUFFER_LENGTH - 1)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
