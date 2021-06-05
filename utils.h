@@ -30,6 +30,12 @@ namespace UTILS {
 	 * Clears the given data-buffer.
 	 */
 	extern void clearBuffer(uint8_t *buffer, size_t length);
+
+	/**
+	 * Pauses the executing thread.<br>
+	 * Note that this should only be used when there is no access to the executing thread directly.
+	 */
+	extern void delay(uint64_t nanoDelay);
 };
 
 #endif /* UTILS_H_ */

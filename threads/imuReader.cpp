@@ -7,7 +7,7 @@
 #include "rodos.h"
 #include "hal.h"
 #include "comHandler.h"
-#include "utils.h"
+#include "../utils.h"
 
 
 class ImuReader : RODOS::Thread

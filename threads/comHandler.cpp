@@ -8,8 +8,8 @@
 #include "rodos.h"
 #include "hal.h"
 #include "comHandler.h"
-#include "utils.h"
-#include "sensors/registers/lsm9ds1_reg.h"
+#include "../utils.h"
+#include "../sensors/registers/lsm9ds1_reg.h"
 
 
 class TelecommandListener //: ContinuousThread

@@ -46,12 +46,12 @@ namespace LSM9DS1_GXL_REGS {
 
 	extern Register STATUS_REG_G;
 
-	extern Register OUT_X_L_G;
-	extern Register OUT_X_H_G;
-	extern Register OUT_Y_L_G;
-	extern Register OUT_Y_H_G;
-	extern Register OUT_Z_L_G;
-	extern Register OUT_Z_H_G;
+	extern Register OUT_X_G_L;
+	extern Register OUT_X_G_H;
+	extern Register OUT_Y_G_L;
+	extern Register OUT_Y_G_H;
+	extern Register OUT_Z_G_L;
+	extern Register OUT_Z_G_H;
 
 	extern Register CTRL_REG4;
 	extern Register CTRL_REG5_XL;
@@ -65,23 +65,23 @@ namespace LSM9DS1_GXL_REGS {
 
 	extern Register STATUS_REG_XL;
 
-	extern Register OUT_X_L_XL;
-	extern Register OUT_X_H_XL;
-	extern Register OUT_Y_L_XL;
-	extern Register OUT_Y_H_XL;
-	extern Register OUT_Z_L_XL;
-	extern Register OUT_Z_H_XL;
+	extern Register OUT_X_XL_L;
+	extern Register OUT_X_XL_H;
+	extern Register OUT_Y_XL_L;
+	extern Register OUT_Y_XL_H;
+	extern Register OUT_Z_XL_L;
+	extern Register OUT_Z_XL_H;
 
 	extern Register FIFO_CTRL;
 	extern Register FIFO_SRC;
 
 	extern Register INT_GEN_CFG_G;
-	extern Register INT_GEN_THS_XH_G;
-	extern Register INT_GEN_THS_XL_G;
-	extern Register INT_GEN_THS_YH_G;
-	extern Register INT_GEN_THS_YL_G;
-	extern Register INT_GEN_THS_ZH_G;
-	extern Register INT_GEN_THS_ZL_G;
+	extern Register INT_GEN_THS_X_G_H;
+	extern Register INT_GEN_THS_X_G_L;
+	extern Register INT_GEN_THS_Y_G_H;
+	extern Register INT_GEN_THS_Y_G_L;
+	extern Register INT_GEN_THS_Z_G_H;
+	extern Register INT_GEN_THS_Z_G_L;
 	extern Register INT_GEN_DUR_G;
 
 	extern Register *USED_GXL[];
@@ -94,12 +94,12 @@ namespace LSM9DS1_GXL_REGS {
  */
 namespace LSM9DS1_M_REGS {
 	// Magnetic sensor
-	extern Register OFFSET_X_REG_L_M;
-	extern Register OFFSET_X_REG_H_M;
-	extern Register OFFSET_Y_REG_L_M;
-	extern Register OFFSET_Y_REG_H_M;
-	extern Register OFFSET_Z_REG_L_M;
-	extern Register OFFSET_Z_REG_H_M;
+	extern Register OFFSET_X_REG_M_L;
+	extern Register OFFSET_X_REG_M_H;
+	extern Register OFFSET_Y_REG_M_L;
+	extern Register OFFSET_Y_REG_M_H;
+	extern Register OFFSET_Z_REG_M_L;
+	extern Register OFFSET_Z_REG_M_H;
 
 	extern Register WHO_AM_I_M;
 
@@ -111,17 +111,17 @@ namespace LSM9DS1_M_REGS {
 
 	extern Register STATUS_REG_M;
 
-	extern Register OUT_X_L_M;
-	extern Register OUT_X_H_M;
-	extern Register OUT_Y_L_M;
-	extern Register OUT_Y_H_M;
-	extern Register OUT_Z_L_M;
-	extern Register OUT_Z_H_M;
+	extern Register OUT_X_M_L;
+	extern Register OUT_X_M_H;
+	extern Register OUT_Y_M_L;
+	extern Register OUT_Y_M_H;
+	extern Register OUT_Z_M_L;
+	extern Register OUT_Z_M_H;
 
 	extern Register INT_CFG_M;
 	extern Register INT_SRC_M;
-	extern Register INT_THS_L_M;
-	extern Register INT_THS_H_M;
+	extern Register INT_THS_M_L;
+	extern Register INT_THS_M_H;
 
 	extern Register *USED_M[];
 

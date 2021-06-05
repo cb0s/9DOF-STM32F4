@@ -13,7 +13,7 @@ Hal::Hal(HAL_I2C *i2cDevice) : I2C_DEVICE(i2cDevice)
 bool inline Hal::init(uint32_t i2cFreq)
 {
 	UTILS::clearBuffer(Hal::writeBuffer, WRITE_BUFFER_LENGTH);
-	return (initI2c(i2cFreq) == 0) && setup();
+	return initI2c(i2cFreq) && setup();
 }
 
 bool inline Hal::initI2c(uint32_t freq)
@@ -23,7 +23,7 @@ bool inline Hal::initI2c(uint32_t freq)
 		return false;
 	}
 	I2C_DEVICE->reset();
-	return I2C_DEVICE->init(freq) && setupI2c();
+	return (I2C_DEVICE->init(freq) == 0) && setupI2c();
 }
 
 bool Hal::checkRegister(const Register *reg, const REGISTER_ACCESS requestedAccess, const Register **allowedRegs,

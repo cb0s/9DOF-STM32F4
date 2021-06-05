@@ -16,7 +16,7 @@
 /**
  * Write-buffer size for the Hal-Classes.
  */
-#define WRITE_BUFFER_LENGTH 10
+#define WRITE_BUFFER_LENGTH 8
 
 class Hal {
 public:
