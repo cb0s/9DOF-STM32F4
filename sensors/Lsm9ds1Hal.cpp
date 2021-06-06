@@ -19,7 +19,7 @@ Lsm9ds1Hal::Lsm9ds1Hal(HAL_I2C *device) : Hal(device)
 
 bool Lsm9ds1Hal::initLsm9ds1()
 {
-	return Hal::init(LSM9DS1_I2C::FREQ);
+	return this->init(LSM9DS1_I2C::FREQ);
 }
 
 bool Lsm9ds1Hal::setup()
@@ -31,8 +31,8 @@ bool Lsm9ds1Hal::setup()
 bool Lsm9ds1Hal::setupI2c()
 {
 	// Check that both I2C-Devices are recognized -> fail after FAILED_RECOGNITION_ATTEMPTS unsuccessful attempts
-	if (!(Lsm9ds1Hal::detectSensor(&LSM9DS1_I2C::GYRO_ACCEL, &LSM9DS1_GXL_REGS::WHO_AM_I_GXL, LSM9DS1_I2C::GYRO_ACCEL.ADDRESS) ||
-			Lsm9ds1Hal::detectSensor(&LSM9DS1_I2C::MAGNETOMETER, &LSM9DS1_M_REGS::WHO_AM_I_M, LSM9DS1_I2C::MAGNETOMETER.ADDRESS)))
+	if (!(this->detectSensor(&LSM9DS1_I2C::GYRO_ACCEL, &LSM9DS1_GXL_REGS::WHO_AM_I_GXL, LSM9DS1_I2C::GYRO_ACCEL.ADDRESS) ||
+			this->detectSensor(&LSM9DS1_I2C::MAGNETOMETER, &LSM9DS1_M_REGS::WHO_AM_I_M, LSM9DS1_I2C::MAGNETOMETER.ADDRESS)))
 	{
 		return false;
 	}
@@ -51,7 +51,7 @@ bool Lsm9ds1Hal::setupI2c()
 	dataBuffer[0] |= 0b0 << 1;	// BW 1
 	dataBuffer[0] |= 0b0 << 0;	// BW 0
 
-	if (!Lsm9ds1Hal::writeGxlI2c(&LSM9DS1_GXL_REGS::CTRL_REG1_G, dataBuffer, 1))
+	if (!this->writeGxlI2c(&LSM9DS1_GXL_REGS::CTRL_REG1_G, dataBuffer, 1))
 	{
 		return false;
 	}
@@ -68,7 +68,7 @@ bool Lsm9ds1Hal::setupI2c()
 	dataBuffer[0] |= 0b0 << 1;	// BW 1
 	dataBuffer[0] |= 0b0 << 0;	// BW 0
 
-	if (!Lsm9ds1Hal::writeGxlI2c(&LSM9DS1_GXL_REGS::CTRL_REG6_XL, dataBuffer, 1))
+	if (!this->writeGxlI2c(&LSM9DS1_GXL_REGS::CTRL_REG6_XL, dataBuffer, 1))
 	{
 		return false;
 	}
@@ -86,7 +86,7 @@ bool Lsm9ds1Hal::setupI2c()
 	dataBuffer[0] |= 0b0 << 1;	// FAST_ODR
 	dataBuffer[0] |= 0b0 << 0;	// ST
 
-	if (!Lsm9ds1Hal::writeMI2c(&LSM9DS1_M_REGS::CTRL_REG1_M, dataBuffer, 1))
+	if (!this->writeMI2c(&LSM9DS1_M_REGS::CTRL_REG1_M, dataBuffer, 1))
 	{
 		return false;
 	}
@@ -103,7 +103,7 @@ bool Lsm9ds1Hal::setupI2c()
 	dataBuffer[0] |= 0b0 << 1;	// Blank (must always be 0)
 	dataBuffer[0] |= 0b0 << 0;	// Blank (must always be 0)
 
-	if (!Lsm9ds1Hal::writeMI2c(&LSM9DS1_M_REGS::CTRL_REG2_M, dataBuffer, 1))
+	if (!this->writeMI2c(&LSM9DS1_M_REGS::CTRL_REG2_M, dataBuffer, 1))
 	{
 		return false;
 	}
@@ -120,7 +120,7 @@ bool Lsm9ds1Hal::setupI2c()
 	dataBuffer[0] |= 0b0 << 1;	// MD 1
 	dataBuffer[0] |= 0b0 << 0;	// MD 0
 
-	if (!Lsm9ds1Hal::writeMI2c(&LSM9DS1_M_REGS::CTRL_REG3_M, dataBuffer, 1))
+	if (!this->writeMI2c(&LSM9DS1_M_REGS::CTRL_REG3_M, dataBuffer, 1))
 	{
 		return false;
 	}
@@ -131,7 +131,7 @@ bool Lsm9ds1Hal::setupI2c()
 
 bool Lsm9ds1Hal::readTemp(float &temp)
 {
-	if (!Lsm9ds1Hal::readGxlI2c(&LSM9DS1_GXL_REGS::OUT_TEMP_L, dataBuffer, 2))
+	if (!this->readGxlI2c(&LSM9DS1_GXL_REGS::OUT_TEMP_L, dataBuffer, 2))
 	{
 		return false;
 	}
@@ -198,7 +198,7 @@ bool Lsm9ds1Hal::detectSensor(I2cDevice *device, Register *whoAmI, uint8_t expec
 
 	for (uint8_t i = 0; i < FAILED_RECOGNITION_ATTEMPTS; i++)
 	{
-		Hal::readI2c(device, whoAmI, dataBuffer, 1);
+		this->readI2c(device, whoAmI, dataBuffer, 1);
 
 		if (dataBuffer[0] == LSM9DS1_I2C::GYRO_ACCEL.ADDRESS)
 		{
@@ -235,20 +235,20 @@ float Lsm9ds1Hal::getMagneticSens()
 
 bool inline Lsm9ds1Hal::readGxlI2c(Register *reg, uint8_t data[], size_t bytesToRead)
 {
-	return Hal::readI2c(&LSM9DS1_I2C::GYRO_ACCEL, reg, data, bytesToRead);
+	return this->readI2c(&LSM9DS1_I2C::GYRO_ACCEL, reg, data, bytesToRead);
 }
 
 bool inline Lsm9ds1Hal::writeGxlI2c(Register *reg, uint8_t data[], size_t bytesToWrite)
 {
-	return Hal::writeI2c(&LSM9DS1_I2C::GYRO_ACCEL, reg, data, bytesToWrite);
+	return this->writeI2c(&LSM9DS1_I2C::GYRO_ACCEL, reg, data, bytesToWrite);
 }
 
 bool inline Lsm9ds1Hal::readMI2c(Register *reg, uint8_t data[], size_t bytesToRead)
 {
-	return Hal::readI2c(&LSM9DS1_I2C::MAGNETOMETER, reg, data, bytesToRead);
+	return this->readI2c(&LSM9DS1_I2C::MAGNETOMETER, reg, data, bytesToRead);
 }
 
 bool inline Lsm9ds1Hal::writeMI2c(Register *reg, uint8_t data[], size_t bytesToWrite)
 {
-	return Hal::writeI2c(&LSM9DS1_I2C::MAGNETOMETER, reg, data, bytesToWrite);
+	return this->writeI2c(&LSM9DS1_I2C::MAGNETOMETER, reg, data, bytesToWrite);
 }

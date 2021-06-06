@@ -11,7 +11,7 @@
 #include "rodos.h"
 #include "../registers/registers.h"
 
-enum class I2C_DEVICE_TYPE {
+enum class I2C_DEVICE_TYPE : uint8_t {
 	MASTER,
 	SLAVE
 };
