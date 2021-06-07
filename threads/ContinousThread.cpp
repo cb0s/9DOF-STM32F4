@@ -5,20 +5,24 @@
  *      Author: Cedric Boes
  */
 
-#include "ContinousThread.h"
+#include "ContinuousThread.h"
 
 
-ContinuousThread::ContinuousThread(unsigned long delay, RODOS::HAL_GPIO LED, const char* name) : m_DELAY(delay), m_LED(LED), Thread(name)
+ContinuousThread::ContinuousThread(uint64_t delay, RODOS::HAL_GPIO *LED, const char* name)
+	: DELAY(delay), LED(LED), Thread(name)
+{}
+
+void ContinuousThread::init()
 {
-	LED.init(true, 1, 0);
+	LED->init(true, 1, 0);
 }
 
 void ContinuousThread::run()
 {
-	unsigned long currentTime = RODOS::NOW();
+	uint64_t currentTime = RODOS::NOW();
 	while(onLoop(currentTime))
 	{
-		currentTime += m_DELAY;
+		currentTime += DELAY;
 		AT(currentTime);
 	}
 
@@ -27,5 +31,5 @@ void ContinuousThread::run()
 
 void ContinuousThread::toggleLed()
 {
-	m_LED.setPins(~m_LED.readPins());
+	LED->setPins(~LED->readPins());
 }

@@ -15,7 +15,7 @@ inline void UTILS::clearBuffer(uint8_t *buffer, size_t length)
 	}
 }
 
-inline void UTILS::delay(uint64_t nanoDelay)
+inline void UTILS::blockingDelay(uint64_t nanoDelay)
 {
 	uint64_t start = RODOS::NOW();
 	while (RODOS::NOW() < start + nanoDelay);

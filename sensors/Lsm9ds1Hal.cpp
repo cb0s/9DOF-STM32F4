@@ -205,7 +205,8 @@ bool Lsm9ds1Hal::detectSensor(I2cDevice *device, Register *whoAmI, uint8_t expec
 			return true;
 		}
 
-		UTILS::delay(500 * MILLISECONDS);
+		// Thread::suspendCallerUntil(RODOS::NOW() + 500 * MILLISECONDS);
+		UTILS::blockingDelay(500 * MILLISECONDS);
 	}
 
 	return false;

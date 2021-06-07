@@ -35,7 +35,7 @@ namespace UTILS {
 	 * Pauses the executing thread.<br>
 	 * Note that this should only be used when there is no access to the executing thread directly.
 	 */
-	extern void delay(uint64_t nanoDelay);
+	extern void blockingDelay(uint64_t nanoDelay);
 };
 
 #endif /* UTILS_H_ */
