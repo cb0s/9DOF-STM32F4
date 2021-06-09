@@ -10,7 +10,8 @@
 // Must be <255 otherwise it is treated like infinity
 #define FAILED_RECOGNITION_ATTEMPTS 3
 
-Lsm9ds1Hal::Lsm9ds1Hal(HAL_I2C *device) : Hal(device)
+Lsm9ds1Hal::Lsm9ds1Hal(HAL_I2C *device)
+	: Hal(device)
 {
 	// Standard norm values for this exercise
 	setNormalizationValues(LSM9DS1_GENERAL_CONSTANTS::ACCEL_LIN_SENS_2G,
