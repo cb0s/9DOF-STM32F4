@@ -88,6 +88,8 @@ namespace TELEMETRY {
 		ALIVE_SIGNAL(uint64_t &measureTime)
 			: TELEMETRY_MSG(MSG_ID, measureTime, BOARD_STATE::NORMAL)
 		{}
+
+		static const uint8_t MSG_ID = 0x7;
 	};
 };
 

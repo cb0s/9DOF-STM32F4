@@ -24,7 +24,6 @@ public:
 	void toggleLed();
 protected:
 	uint64_t DELAY;
-private:
 	RODOS::HAL_GPIO *LED;
 };
 

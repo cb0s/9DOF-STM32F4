@@ -14,7 +14,9 @@
 #include "../messages/telemetry.h"
 #include "../sensors/Lsm9ds1Hal.h"
 
-#define CALIRBATION_SAMPLES 100
+#define CALIBRATION_SAMPLES 100
+// must be smaller than calibration samples
+#define CALIBRATION_BLINKS 40
 
 class SignalProcessorThread: public ContinuousThread {
 public:
@@ -38,10 +40,18 @@ public:
 private:
 	bool measure(uint64_t time);
 
+	bool calibrateAccel(uint64_t time);
+	bool calibrateGyro(uint64_t time);
+	bool calibrateMagn(uint64_t time);
+
 	bool radioSilenceSent;
 	BOARD_STATE state;
+	BOARD_STATE calState = BOARD_STATE::NORMAL;
 
 	uint64_t lastRead;
+
+	uint16_t calibrationProcess;
+	Vector3D calVals[3];
 
 	Lsm9ds1Hal *SENSOR;
 	TELEMETRY::SYSTEM_T *signalData;

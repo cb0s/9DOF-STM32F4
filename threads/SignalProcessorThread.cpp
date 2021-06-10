@@ -29,7 +29,8 @@ SignalProcessorThread::SignalProcessorThread(
 	  signalIntervalBuffer(signalIntervalBuffer),
 	  lastRead(0),
 	  radioSilenceSent(false),
-	  state(BOARD_STATE::NORMAL)
+	  state(BOARD_STATE::NORMAL),
+	  calibrationProcess(0)
 {}
 
 SignalProcessorThread::~SignalProcessorThread()
@@ -45,15 +46,19 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 		heartBeat->STATE = state;
 	}
 
+	bool error = false;
+	heartBeat->INTERNAL_TIME = time;
+	readingErrorData->INTERNAL_TIME = time;
+
 	switch(state)
 	{
-	case BOARD_STATE::RADIO_SILENCE:
+	case BOARD_STATE::RADIO_SILENCE:		// That the sender knows RADIO-Silence was received
 		if (!radioSilenceSent)
 		{
 			radioSilenceSent = false;
 			TOPICS::TELEMETRY_TOPIC.publish(*heartBeat);
 		}
-		break;
+		return true;
 	case BOARD_STATE::NORMAL:
 		if (measure(time))
 		{
@@ -63,16 +68,60 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 		{
 			TOPICS::TELEMETRY_TOPIC.publish(*signalData);
 		}
-		break;
+		return true;
 	case BOARD_STATE::CALIBRATE_ACCEL:
+	case BOARD_STATE::CALIBRATE_ACCEL_X:
+	case BOARD_STATE::CALIBRATE_ACCEL_Y:
+	case BOARD_STATE::CALIBRATE_ACCEL_Z:
+		error = !calibrateAccel(time);
 		break;
 	case BOARD_STATE::CALIBRATE_GYRO:
+		error = !calibrateGyro(time);
 		break;
 	case BOARD_STATE::CALIBRATE_MAGN:
+		this->calVals[0].x = 0b01111111100000000000000000000000;	// = Inf
+		this->calVals[0].y = 0b01111111100000000000000000000000;	// = Inf
+		this->calVals[0].z = 0b01111111100000000000000000000000;	// = Inf
+		// Fall through intentional
+	case BOARD_STATE::CALIBRATE_MAGN_X:
+	case BOARD_STATE::CALIBRATE_MAGN_Y:
+	case BOARD_STATE::CALIBRATE_MAGN_Z:
+		error = !calibrateMagn(time);
+		break;
+	case BOARD_STATE::CALIBRATE_WARN:
+		calibrationProcess++;
+		calibrationLed.setPins(~calibrationLed.readPins());
+		if (calibrationProcess % CALIBRATION_SAMPLES == CALIBRATION_BLINKS)
+		{
+			calibrationProcess -= CALIBRATION_BLINKS;
+			calibrationLed.setPins(false);
+
+			TOPICS::SYSTEM_STATE_TOPIC.publish(calState);
+		}
 		break;
 	case BOARD_STATE::CALIBRATE_FINAL:
+		this->calibrationProcess = 0;
+		this->calibrationData->INTERNAL_TIME = time;
+		for (uint8_t i = 0; i < 3; i++)
+		{
+			this->calVals[i].x = 0;
+			this->calVals[i].y = 0;
+			this->calVals[i].z = 0;
+		}
 		TOPICS::TELEMETRY_TOPIC.publish(*calibrationData);
-		break;
+
+		LED->setPins(true);
+		return true;
+	}
+
+	// Being here means being in the calibration process
+	if (error)
+	{
+		TOPICS::TELEMETRY_TOPIC.publish(*readingErrorData);
+	}
+	else
+	{
+		TOPICS::TELEMETRY_TOPIC.publish(*heartBeat);
 	}
 
 	return true;
@@ -114,24 +163,151 @@ bool SignalProcessorThread::measure(uint64_t time)
 
 	float sinRoll = sin(rotEul.getRoll());
 	float cosRoll = cos(rotEul.getRoll());
-	float tanPitch = tan(rotEul.getPitch());
+	float sinPitch = sin(rotEul.getPitch());
 	float cosPitch = cos(rotEul.getPitch());
+	float tanPitch = sinPitch / cosPitch;
 
 	Matrix3D gyroMatrix({0, 1, 0},
 			{cosRoll, sinRoll * tanPitch, sinRoll / cosPitch},
 			{-sinRoll, cosRoll * tanPitch, cosRoll / cosPitch});
 
 	RPY dtRotEul = gyroMatrix * rot;
+	RPY finalRot = this->signalData->GYRO_GAUSS + dtRotEul * deltaT;
+
+	// Tilt compensation
+	Vector3D correctedFlux;
+	correctedFlux.x = flux.x * cosPitch + flux.z * sinPitch;
+	correctedFlux.y = flux.x * sinRoll * sinPitch + flux.y * cosRoll - flux.z * sinRoll * cosPitch;
+	correctedFlux.z = flux.z;
 
 	this->signalData->ACCEL = accel;
 	this->signalData->GYRO = rot;
 	this->signalData->GYRO_SPEED = dtRotEul;
-	this->signalData->GYRO_GAUSS = this->signalData->GYRO + dtRotEul * deltaT;
+	this->signalData->GYRO_GAUSS = finalRot;
 	this->signalData->ROT_MATRIX = rotMatrix;
-	this->signalData->MAGNET = flux;
+	this->signalData->MAGNET = correctedFlux;
 	this->signalData->TEMP = temp;
 
 	this->signalData->INTERNAL_TIME = time;
+
+	return true;
+}
+
+bool SignalProcessorThread::calibrateAccel(uint64_t time)
+{
+	toggleLed();
+
+	Vector3D vec;
+	if (!SENSOR->readAcceleration(vec))
+	{
+		return false;
+	}
+
+	uint8_t index = 255;	// Will definitely be changed to be <3 or exited
+	if (this->state == BOARD_STATE::CALIBRATE_ACCEL_X)
+	{
+		index = 0;
+	}
+	else if (this->state == BOARD_STATE::CALIBRATE_ACCEL_Y)
+	{
+		index = 1;
+	}
+	else if (this->state == BOARD_STATE::CALIBRATE_ACCEL_Z)
+	{
+		index = 2;
+	}
+	else
+	{
+		return false;
+	}
+
+	this->calVals[index] = this->calVals[index] + vec;
+
+	calibrationProcess++;
+	if (calibrationProcess == CALIBRATION_SAMPLES)
+	{
+		calState = BOARD_STATE::CALIBRATE_ACCEL_Y;
+
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_WARN);
+	}
+	else if (calibrationProcess == 2*CALIBRATION_SAMPLES)
+	{
+		calState = BOARD_STATE::CALIBRATE_ACCEL_Z;
+
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_WARN);
+	}
+	else if (calibrationProcess == 3*CALIBRATION_SAMPLES)
+	{
+		this->calibrationData->ACCEL_OFFSET.x = (this->calVals[0].x + this->calVals[2].x) / (CALIBRATION_SAMPLES * 2);
+		this->calibrationData->ACCEL_OFFSET.y = (this->calVals[0].y + this->calVals[1].y) / (CALIBRATION_SAMPLES * 2);
+		this->calibrationData->ACCEL_OFFSET.z = (this->calVals[1].z + this->calVals[2].z) / (CALIBRATION_SAMPLES * 2);
+
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_FINAL);
+	}
+
+	return true;
+}
+
+bool SignalProcessorThread::calibrateGyro(uint64_t time)
+{
+	toggleLed();
+
+	Vector3D vec;
+	if (!SENSOR->readRotation(vec))
+	{
+		return false;
+	}
+
+	this->calVals[0] = this->calVals[0] + vec;
+
+	calibrationProcess++;
+	if (calibrationProcess == CALIBRATION_SAMPLES)
+	{
+		this->calibrationData->GYRO_OFFSET = this->calVals[0] / CALIBRATION_SAMPLES;
+	}
+
+	return true;
+}
+
+bool SignalProcessorThread::calibrateMagn(uint64_t time)
+{
+	toggleLed();
+
+	Vector3D vec;
+	if (!SENSOR->readMagneticField(vec))
+	{
+		return false;
+	}
+
+	UTILS::minimizedVector(calVals[0], vec);
+	UTILS::maximizedVector(calVals[1], vec);
+
+	calibrationProcess++;
+
+	if (calibrationProcess == CALIBRATION_SAMPLES)
+	{
+		calState = BOARD_STATE::CALIBRATE_MAGN_Y;
+
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_WARN);
+	}
+	else if (calibrationProcess == 2*CALIBRATION_SAMPLES)
+	{
+		calState = BOARD_STATE::CALIBRATE_MAGN_Z;
+
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_WARN);
+	}
+	else if (calibrationProcess == 3*CALIBRATION_SAMPLES)
+	{
+		calibrationData->MAGNET_OFFSET_MIN.x = calVals[0].x;
+		calibrationData->MAGNET_OFFSET_MIN.y = calVals[0].y;
+		calibrationData->MAGNET_OFFSET_MIN.z = calVals[0].z;
+
+		calibrationData->MAGNET_OFFSET_MAX.x = calVals[1].x;
+		calibrationData->MAGNET_OFFSET_MAX.y = calVals[1].y;
+		calibrationData->MAGNET_OFFSET_MAX.z = calVals[1].z;
+
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_FINAL);
+	}
 
 	return true;
 }

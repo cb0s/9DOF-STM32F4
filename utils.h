@@ -2,7 +2,7 @@
  * utils.h
  *
  *  Created on: 28.05.2021
- *      Author: Cedric
+ *      Author: Cedric Boes
  */
 #pragma once
 
@@ -10,6 +10,7 @@
 #define UTILS_H_
 
 #include "rodos.h"
+#include "matlib.h"
 
 namespace UTILS {
 	/**
@@ -36,6 +37,10 @@ namespace UTILS {
 	 * Note that this should only be used when there is no access to the executing thread directly.
 	 */
 	extern void blockingDelay(uint64_t nanoDelay);
+
+	extern void minimizedVector(Vector3D &toMax, Vector3D &toCompare);
+
+	extern void maximizedVector(Vector3D &toMax, Vector3D &toCompare);
 };
 
 #endif /* UTILS_H_ */
