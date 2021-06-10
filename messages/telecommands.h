@@ -43,8 +43,6 @@ namespace TELECOMMAND {
 		const uint64_t DELAY;
 		static const uint8_t MSG_ID = 0x3;
 	};
-
-	extern bool parseTelecommand(uint8_t *rawBytes, size_t length, uint8_t msgId);
 };
 
 

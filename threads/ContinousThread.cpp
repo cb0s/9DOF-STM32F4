@@ -15,6 +15,7 @@ ContinuousThread::ContinuousThread(uint64_t delay, RODOS::HAL_GPIO *LED, const c
 void ContinuousThread::init()
 {
 	LED->init(true, 1, 1);
+	prepare();
 }
 
 void ContinuousThread::run()

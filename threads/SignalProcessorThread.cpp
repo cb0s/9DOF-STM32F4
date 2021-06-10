@@ -9,6 +9,7 @@
 
 SignalProcessorThread::SignalProcessorThread(
 		Lsm9ds1Hal *sensor,
+		uint32_t i2cFreq,
 		TELEMETRY::SYSTEM_T *signalData,
 		TELEMETRY::CALIBRATION_DATA *calibrationData,
 		TELEMETRY::READING_ERROR *readingErrorData,
@@ -16,11 +17,14 @@ SignalProcessorThread::SignalProcessorThread(
 		RODOS::CommBuffer<BOARD_STATE> *stateBuffer,
 		RODOS::CommBuffer<uint64_t> *signalIntervalBuffer,
 
+		RODOS::HAL_GPIO *calibrationLed,
+
 		uint64_t DELAY,
 		RODOS::HAL_GPIO *LED,
 		const char *name)
 	: ContinuousThread(DELAY, LED, name),
-	  SENSOR(sensor),
+	  sensor(sensor),
+	  i2cFreq(i2cFreq),
 	  signalData(signalData),
 	  calibrationData(calibrationData),
 	  readingErrorData(readingErrorData),
@@ -30,11 +34,18 @@ SignalProcessorThread::SignalProcessorThread(
 	  lastRead(0),
 	  radioSilenceSent(false),
 	  state(BOARD_STATE::NORMAL),
-	  calibrationProcess(0)
+	  calibrationLed(calibrationLed),
+	  calibrationProcess(0),
+	  calBlinky(0)
 {}
 
 SignalProcessorThread::~SignalProcessorThread()
 {}
+
+void SignalProcessorThread::prepare()
+{
+	sensor->init(i2cFreq);
+}
 
 bool SignalProcessorThread::onLoop(uint64_t time)
 {
@@ -46,6 +57,8 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 		heartBeat->STATE = state;
 	}
 
+	this->signalIntervalBuffer->getOnlyIfNewData(DELAY);
+
 	bool error = false;
 	heartBeat->INTERNAL_TIME = time;
 	readingErrorData->INTERNAL_TIME = time;
@@ -55,9 +68,13 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 	case BOARD_STATE::RADIO_SILENCE:		// That the sender knows RADIO-Silence was received
 		if (!radioSilenceSent)
 		{
-			radioSilenceSent = false;
+			radioSilenceSent = true;
 			TOPICS::TELEMETRY_TOPIC.publish(*heartBeat);
 		}
+		return true;
+	case BOARD_STATE::REQUEST_CAL_INFO:
+		TOPICS::TELEMETRY_TOPIC.publish(*calibrationData);
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::NORMAL);
 		return true;
 	case BOARD_STATE::NORMAL:
 		if (measure(time))
@@ -68,8 +85,11 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 		{
 			TOPICS::TELEMETRY_TOPIC.publish(*signalData);
 		}
+		radioSilenceSent = false;
 		return true;
 	case BOARD_STATE::CALIBRATE_ACCEL:
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_ACCEL_X);
+		break;
 	case BOARD_STATE::CALIBRATE_ACCEL_X:
 	case BOARD_STATE::CALIBRATE_ACCEL_Y:
 	case BOARD_STATE::CALIBRATE_ACCEL_Z:
@@ -82,19 +102,20 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 		this->calVals[0].x = 0b01111111100000000000000000000000;	// = Inf
 		this->calVals[0].y = 0b01111111100000000000000000000000;	// = Inf
 		this->calVals[0].z = 0b01111111100000000000000000000000;	// = Inf
-		// Fall through intentional
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_MAGN_X);
+		break;
 	case BOARD_STATE::CALIBRATE_MAGN_X:
 	case BOARD_STATE::CALIBRATE_MAGN_Y:
 	case BOARD_STATE::CALIBRATE_MAGN_Z:
 		error = !calibrateMagn(time);
 		break;
 	case BOARD_STATE::CALIBRATE_WARN:
-		calibrationProcess++;
-		calibrationLed.setPins(~calibrationLed.readPins());
-		if (calibrationProcess % CALIBRATION_SAMPLES == CALIBRATION_BLINKS)
+		calBlinky++;
+		calibrationLed->setPins(~calibrationLed->readPins());
+		if (calBlinky % CALIBRATION_BLINKS == 0)
 		{
-			calibrationProcess -= CALIBRATION_BLINKS;
-			calibrationLed.setPins(false);
+			calBlinky = 0;
+			calibrationLed->setPins(false);
 
 			TOPICS::SYSTEM_STATE_TOPIC.publish(calState);
 		}
@@ -112,6 +133,8 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 
 		LED->setPins(true);
 		return true;
+	default:
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::NORMAL);
 	}
 
 	// Being here means being in the calibration process
@@ -135,7 +158,7 @@ bool SignalProcessorThread::measure(uint64_t time)
 
 	float temp = 0.0f;
 
-	if (!(SENSOR->readTemp(temp) && SENSOR->readAcceleration(accel) && SENSOR->readRotation(rot) &&	SENSOR->readMagneticField(flux)))
+	if (!(sensor->readTemp(temp) && sensor->readAcceleration(accel) && sensor->readRotation(rot) &&	sensor->readMagneticField(flux)))
 	{
 		this->readingErrorData->INTERNAL_TIME = time;
 		return false;
@@ -198,7 +221,7 @@ bool SignalProcessorThread::calibrateAccel(uint64_t time)
 	toggleLed();
 
 	Vector3D vec;
-	if (!SENSOR->readAcceleration(vec))
+	if (!sensor->readAcceleration(vec))
 	{
 		return false;
 	}
@@ -253,7 +276,7 @@ bool SignalProcessorThread::calibrateGyro(uint64_t time)
 	toggleLed();
 
 	Vector3D vec;
-	if (!SENSOR->readRotation(vec))
+	if (!sensor->readRotation(vec))
 	{
 		return false;
 	}
@@ -274,7 +297,7 @@ bool SignalProcessorThread::calibrateMagn(uint64_t time)
 	toggleLed();
 
 	Vector3D vec;
-	if (!SENSOR->readMagneticField(vec))
+	if (!sensor->readMagneticField(vec))
 	{
 		return false;
 	}

@@ -30,9 +30,14 @@ namespace MESSAGES {
 		uint8_t *CONTENT;
 	};
 
+	extern bool operator == (HEADER &h1, HEADER &h2);
+	extern bool operator == (MESSAGE &m1, MESSAGE &m2);
+
 	extern uint8_t HEADER_LENGTH;
-	extern uint8_t MAGIC_BYTE;
+	extern uint8_t MAGIC_BYTE;		// Messages must begin with the MAGIC_BYTE...
+	extern uint8_t MAGIC_BYTE_END;	// ...and end with the MAGIC_BYTE_END
 	extern uint8_t USED_MSG_IDS[];
+	extern uint8_t USED_MSG_COUNT;
 	extern MESSAGE INVALID_MSG;
 
 	extern uint8_t messagesMissing(MESSAGE *m1, MESSAGE *m2);

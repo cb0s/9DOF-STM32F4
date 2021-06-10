@@ -15,13 +15,14 @@
 #include "../sensors/Lsm9ds1Hal.h"
 
 #define CALIBRATION_SAMPLES 100
-// must be smaller than calibration samples
-#define CALIBRATION_BLINKS 40
+#define CALIBRATION_BLINKS 200
 
 class SignalProcessorThread: public ContinuousThread {
 public:
 	SignalProcessorThread(
 			Lsm9ds1Hal *sensor,
+			uint32_t i2cFreq,
+
 			TELEMETRY::SYSTEM_T *signalData,
 			TELEMETRY::CALIBRATION_DATA *calibrationData,
 			TELEMETRY::READING_ERROR *readingErrorData,
@@ -29,11 +30,14 @@ public:
 			RODOS::CommBuffer<BOARD_STATE> *stateBuffer,
 			RODOS::CommBuffer<uint64_t> *signalIntervalBuffer,
 
+			RODOS::HAL_GPIO *calibrationLed,
+
 			uint64_t DELAY,
 			RODOS::HAL_GPIO *LED,
 			const char *name = "Anonymous-SignalProcessorThread");
 	virtual ~SignalProcessorThread();
 
+	void prepare() override;
 	bool onLoop(uint64_t time) override;
 	void cleanUp() override;
 
@@ -51,9 +55,12 @@ private:
 	uint64_t lastRead;
 
 	uint16_t calibrationProcess;
+	uint16_t calBlinky;
 	Vector3D calVals[3];
 
-	Lsm9ds1Hal *SENSOR;
+	Lsm9ds1Hal *sensor;
+	uint32_t i2cFreq;
+
 	TELEMETRY::SYSTEM_T *signalData;
 	TELEMETRY::CALIBRATION_DATA *calibrationData;
 	TELEMETRY::READING_ERROR *readingErrorData;
@@ -61,7 +68,7 @@ private:
 	RODOS::CommBuffer<BOARD_STATE> *stateBuffer;
 	RODOS::CommBuffer<uint64_t> *signalIntervalBuffer;
 
-	RODOS::HAL_GPIO calibrationLed;
+	RODOS::HAL_GPIO *calibrationLed;
 };
 
 #endif /* THREADS_SIGNALPROCESSORTHREAD_H_ */

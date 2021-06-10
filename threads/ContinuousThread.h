@@ -15,6 +15,7 @@ class ContinuousThread : public Thread
 public:
 	ContinuousThread(uint64_t delay, RODOS::HAL_GPIO *LED, const char* name = "Anonymous-ContinousThread");
 
+	virtual void prepare();
 	virtual bool onLoop(uint64_t currentTime);
 	virtual void cleanUp();
 

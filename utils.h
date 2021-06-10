@@ -38,6 +38,8 @@ namespace UTILS {
 	 */
 	extern void blockingDelay(uint64_t nanoDelay);
 
+	extern uint64_t bufferToUInt64T(uint8_t *buffer);
+
 	extern void minimizedVector(Vector3D &toMax, Vector3D &toCompare);
 
 	extern void maximizedVector(Vector3D &toMax, Vector3D &toCompare);

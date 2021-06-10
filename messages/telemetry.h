@@ -16,22 +16,22 @@
 namespace TELEMETRY {
 	// Object Oriented programming in rodos goes BRRRRRRR :D
 	struct TELEMETRY_MSG {
-		TELEMETRY_MSG(const uint8_t msgId, uint64_t internalTime, BOARD_STATE state)
+		TELEMETRY_MSG(uint8_t msgId, uint64_t internalTime, BOARD_STATE state)
 			: MSG_ID(msgId), INTERNAL_TIME(internalTime), STATE(state)
 		{}
 
-		const uint8_t MSG_ID;
+		uint8_t MSG_ID;
 		uint64_t INTERNAL_TIME;
 		BOARD_STATE STATE;
 	};
 
 	struct SYSTEM_T : TELEMETRY_MSG {
-		SYSTEM_T(const Vector3D &accel,
-				const Vector3D &gyro,
-				const Vector3D &GYRO_SPEED,
-				const Vector3D &GYRO_GAUSS,
-				const Vector3D &magnet,
-				const Matrix3D &rotMatrix,
+		SYSTEM_T(Vector3D &accel,
+				Vector3D &gyro,
+				Vector3D &GYRO_SPEED,
+				Vector3D &GYRO_GAUSS,
+				Vector3D &magnet,
+				Matrix3D &rotMatrix,
 				float &temp,
 				uint64_t &internalTime)
 			: TELEMETRY_MSG(MSG_ID, internalTime, BOARD_STATE::NORMAL),
@@ -52,7 +52,7 @@ namespace TELEMETRY {
 		Matrix3D ROT_MATRIX;
 		float TEMP;
 
-		static const uint8_t MSG_ID = 0x4;
+		static const uint8_t MSG_ID = 0x10;
 	};
 
 	struct CALIBRATION_DATA : TELEMETRY_MSG {
@@ -73,7 +73,7 @@ namespace TELEMETRY {
 		Vector3D MAGNET_OFFSET_MIN;
 		Vector3D MAGNET_OFFSET_MAX;
 
-		static const uint8_t MSG_ID = 0x5;
+		static const uint8_t MSG_ID = 0x11;
 	};
 
 	struct READING_ERROR : TELEMETRY_MSG {
@@ -81,7 +81,7 @@ namespace TELEMETRY {
 			: TELEMETRY_MSG(MSG_ID, measureTime, BOARD_STATE::NORMAL)
 		{}
 
-		static const uint8_t MSG_ID = 0x6;
+		static const uint8_t MSG_ID = 0x12;
 	};
 
 	struct ALIVE_SIGNAL : TELEMETRY_MSG {
@@ -89,8 +89,10 @@ namespace TELEMETRY {
 			: TELEMETRY_MSG(MSG_ID, measureTime, BOARD_STATE::NORMAL)
 		{}
 
-		static const uint8_t MSG_ID = 0x7;
+		static const uint8_t MSG_ID = 0x13;
 	};
+
+	extern bool operator == (TELEMETRY_MSG &msg1, TELEMETRY_MSG &msg2);
 };
 
 

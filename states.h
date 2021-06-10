@@ -29,6 +29,7 @@ enum BOARD_STATE : uint8_t {
 	CALIBRATE_FINAL = 41,
 
 	RADIO_SILENCE = 50,
+	REQUEST_CAL_INFO = 51	// E.g. after connection-loss that the GC can get this data without a new calibration process
 };
 
 

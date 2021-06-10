@@ -21,6 +21,18 @@ inline void UTILS::blockingDelay(uint64_t nanoDelay)
 	while (RODOS::NOW() < start + nanoDelay);
 }
 
+inline uint64_t UTILS::bufferToUInt64T(uint8_t *buffer)
+{
+	return static_cast<uint64_t>(buffer[7]) << 56 |
+			static_cast<uint64_t>(buffer[6]) << 48 |
+			static_cast<uint64_t>(buffer[5]) << 40 |
+			static_cast<uint64_t>(buffer[4]) << 32 |
+			static_cast<uint32_t>(buffer[3]) << 24 |
+			static_cast<uint32_t>(buffer[2]) << 16 |
+			static_cast<uint16_t>(buffer[1]) << 8 |
+			buffer[0];
+}
+
 inline void UTILS::minimizedVector(Vector3D &toMin, Vector3D &toCompare)
 {
 	toMin.x = toMin.x > toCompare.x ? toCompare.x : toMin.x;
