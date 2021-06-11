@@ -16,6 +16,9 @@
 namespace TELEMETRY {
 	// Object Oriented programming in rodos goes BRRRRRRR :D
 	struct TELEMETRY_MSG {
+		TELEMETRY_MSG() : TELEMETRY_MSG(255, 255, BOARD_STATE::RADIO_SILENCE)
+		{}
+
 		TELEMETRY_MSG(uint8_t msgId, uint64_t internalTime, BOARD_STATE state)
 			: MSG_ID(msgId), INTERNAL_TIME(internalTime), STATE(state)
 		{}

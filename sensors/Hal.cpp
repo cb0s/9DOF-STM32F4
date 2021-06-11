@@ -10,13 +10,16 @@
 Hal::Hal(HAL_I2C *i2cDevice) : I2C_DEVICE(i2cDevice)
 {}
 
-bool inline Hal::init(uint32_t i2cFreq)
+Hal::~Hal()
+{}
+
+bool Hal::init(uint32_t i2cFreq)
 {
 	UTILS::clearBuffer(this->writeBuffer, WRITE_BUFFER_LENGTH);
 	return initI2c(i2cFreq) && setup();
 }
 
-bool inline Hal::initI2c(uint32_t freq)
+bool Hal::initI2c(uint32_t freq)
 {
 	if (this->I2C_DEVICE == NULL || this->I2C_DEVICE == nullptr)
 	{

@@ -68,6 +68,7 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 	case BOARD_STATE::RADIO_SILENCE:		// That the sender knows RADIO-Silence was received
 		if (!radioSilenceSent)
 		{
+			PRINTF("\n\rRADIO_SILECNCE\n\r");
 			radioSilenceSent = true;
 			TOPICS::TELEMETRY_TOPIC.publish(*heartBeat);
 		}
@@ -77,8 +78,9 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::NORMAL);
 		return true;
 	case BOARD_STATE::NORMAL:
-		if (measure(time))
+		if (!measure(time))
 		{
+			PRINTF("\n\rNORMAL_ERROR\n\r");
 			TOPICS::TELEMETRY_TOPIC.publish(*readingErrorData);
 		}
 		else

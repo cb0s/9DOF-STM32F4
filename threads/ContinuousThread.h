@@ -14,10 +14,11 @@ class ContinuousThread : public Thread
 {
 public:
 	ContinuousThread(uint64_t delay, RODOS::HAL_GPIO *LED, const char* name = "Anonymous-ContinousThread");
+	virtual ~ContinuousThread();
 
-	virtual void prepare();
-	virtual bool onLoop(uint64_t currentTime);
-	virtual void cleanUp();
+	virtual void prepare() = 0;
+	virtual bool onLoop(uint64_t currentTime) = 0;
+	virtual void cleanUp() = 0;
 
 	void init() override;
 	void run() override;

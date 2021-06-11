@@ -9,6 +9,7 @@
 
 #include "rodos.h"
 #include "matlib.h"
+#include "../utils.h"
 #include "Hal.h"
 #include "constants/lsm9ds1_const.h"
 #include "i2c/lsm9ds1_i2c.h"

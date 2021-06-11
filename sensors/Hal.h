@@ -32,12 +32,12 @@ public:
 	 *
 	 * @return whether setup was successful
 	 */
-	virtual bool setup();
+	virtual bool setup() = 0;
 
 	/**
 	 * Sets up the I2C-Interface for the hall-sensor.
 	 */
-	virtual bool setupI2c();
+	virtual bool setupI2c() = 0;
 
 	/**
 	 * Initializes the Hal-Class in general. This means all init() methods will be called<br>

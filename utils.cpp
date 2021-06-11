@@ -7,7 +7,7 @@
 #include "utils.h"
 
 
-inline void UTILS::clearBuffer(uint8_t *buffer, size_t length)
+void UTILS::clearBuffer(uint8_t *buffer, size_t length)
 {
 	for (size_t i = 0 ; i < length; i++)
 	{
@@ -15,13 +15,13 @@ inline void UTILS::clearBuffer(uint8_t *buffer, size_t length)
 	}
 }
 
-inline void UTILS::blockingDelay(uint64_t nanoDelay)
+void UTILS::blockingDelay(uint64_t nanoDelay)
 {
 	uint64_t start = RODOS::NOW();
 	while (RODOS::NOW() < start + nanoDelay);
 }
 
-inline uint64_t UTILS::bufferToUInt64T(uint8_t *buffer)
+uint64_t UTILS::bufferToUInt64T(uint8_t *buffer)
 {
 	return static_cast<uint64_t>(buffer[7]) << 56 |
 			static_cast<uint64_t>(buffer[6]) << 48 |
@@ -33,14 +33,14 @@ inline uint64_t UTILS::bufferToUInt64T(uint8_t *buffer)
 			buffer[0];
 }
 
-inline void UTILS::minimizedVector(Vector3D &toMin, Vector3D &toCompare)
+void UTILS::minimizedVector(Vector3D &toMin, Vector3D &toCompare)
 {
 	toMin.x = toMin.x > toCompare.x ? toCompare.x : toMin.x;
 	toMin.y = toMin.y > toCompare.y ? toCompare.y : toMin.y;
 	toMin.z = toMin.z > toCompare.z ? toCompare.z : toMin.z;
 }
 
-inline void UTILS::maximizedVector(Vector3D &toMax, Vector3D &toCompare)
+void UTILS::maximizedVector(Vector3D &toMax, Vector3D &toCompare)
 {
 	toMax.x = toMax.x < toCompare.x ? toCompare.x : toMax.x;
 	toMax.y = toMax.y < toCompare.y ? toCompare.y : toMax.y;

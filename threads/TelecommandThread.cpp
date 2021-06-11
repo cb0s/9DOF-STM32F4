@@ -35,19 +35,22 @@ void TelecommandThread::prepare()
 	this->uart->init(baudRate);
 
 	this->uart->config(RODOS::UART_PARAMETER_ENABLE_DMA, 1);
+	this->uart->config(RODOS::UART_PARAMETER_BAUDRATE, baudRate);
 }
 
 bool TelecommandThread::onLoop(uint64_t time)
 {
-	toggleLed();	// Blinks if handling TC
-
 	this->uart->suspendUntilDataReady();
+
 	uint64_t wait = this->lastMsgBegin + this->timeOut;
 	if (this->lastMsgBegin != 0 && (wait <= timeOut ? END_OF_TIME : wait) <= RODOS::NOW())
 	{
 		resetError();
 		return true;
 	}
+
+	toggleLed();	// Blinks if handling TC
+	PRINTF("\n\nTELECOMMAND\n\n");
 
 	char tempBuff[1];
 	if (!this->uart->read(tempBuff, 1))
@@ -127,6 +130,8 @@ bool TelecommandThread::handleMsg()
 {
 	MESSAGES::MESSAGE msg = MESSAGES::parseRaw(messageBuffer, currentMsgSize);
 
+	PRINTF("\n\rTelecommand Handling\n\r");
+
 	if (msg == MESSAGES::INVALID_MSG)
 	{
 		return false;
@@ -160,7 +165,7 @@ bool TelecommandThread::handleMsg()
 			TOPICS::SYSTEM_STATE_TOPIC.publishConst(state);
 		}
 		return true;
-	case TELECOMMAND::UPDATE_SIGNAL_UPDATE_DELAY::MSG_ID:
+	case TELECOMMAND::UPDATE_SIGNAL_DELAY::MSG_ID:
 		if (msg.HEAD.LENGTH != 8)
 		{
 			return false;

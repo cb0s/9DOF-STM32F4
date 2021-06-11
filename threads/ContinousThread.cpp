@@ -12,6 +12,9 @@ ContinuousThread::ContinuousThread(uint64_t delay, RODOS::HAL_GPIO *LED, const c
 	: DELAY(delay), LED(LED), Thread(name)
 {}
 
+ContinuousThread::~ContinuousThread()
+{}
+
 void ContinuousThread::init()
 {
 	LED->init(true, 1, 1);

@@ -18,6 +18,9 @@ Lsm9ds1Hal::Lsm9ds1Hal(HAL_I2C *device)
 			LSM9DS1_GENERAL_CONSTANTS::ANGULAR_RATE_SENS_2000DPS, LSM9DS1_GENERAL_CONSTANTS::MAGNETIC_SENS_4GAUSS);
 }
 
+Lsm9ds1Hal::~Lsm9ds1Hal()
+{}
+
 bool Lsm9ds1Hal::initLsm9ds1()
 {
 	return this->init(LSM9DS1_I2C::FREQ);
@@ -137,7 +140,9 @@ bool Lsm9ds1Hal::readTemp(float &temp)
 		return false;
 	}
 
-	int16_t tempBits = (dataBuffer[1] << 8 | dataBuffer[0]) & 0b0000111111111111;
+	PRINTF("\n\rTEMP: %c%c\n\r", dataBuffer[1], dataBuffer[0]);
+
+	int16_t tempBits = (((int16_t) dataBuffer[0]) << 8 | dataBuffer[1]) & 0b0000111111111111;
 
 	// For signed numbers
 	// 0x0800 = 0b0000 1000 0000 0000
@@ -147,7 +152,11 @@ bool Lsm9ds1Hal::readTemp(float &temp)
 		tempBits |= 0xF000;
 	}
 
+	PRINTF("\n\rTEMP2: %d\n\r", tempBits);
+
 	temp = (float) tempBits / LSM9DS1_GENERAL_CONSTANTS::TEMP_NORM_FACTOR + LSM9DS1_GENERAL_CONSTANTS::NORM_TEMP;
+
+	PRINTF("\n\rTEMP3: %f\n\r", temp);
 
 	UTILS::clearBuffer(dataBuffer, 2);
 	return true;

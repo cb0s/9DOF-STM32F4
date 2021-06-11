@@ -42,14 +42,19 @@ bool TelemetryThread::onLoop(uint64_t time)
 
 	uint8_t length = 0;
 
+	if (msgCount == MESSAGES::MAGIC_BYTE || msgCount == MESSAGES::MAGIC_BYTE_END)
+	{
+		msgCount = MESSAGES::MAGIC_BYTE_END + 1;
+	}
+
 	if (telMsg.MSG_ID == TELEMETRY::ALIVE_SIGNAL::MSG_ID)
 	{
-		TELEMETRY::ALIVE_SIGNAL *msg = (TELEMETRY::ALIVE_SIGNAL*) &telMsg;
+		TELEMETRY::ALIVE_SIGNAL msg = *((TELEMETRY::ALIVE_SIGNAL*) &telMsg);
 		PRINTF("%c%c%c"
-				"%llu;%c;"
+				"%llu;%c"
 				"%c",
 				MESSAGES::MAGIC_BYTE, msgCount++, telMsg.MSG_ID,
-				msg->INTERNAL_TIME, msg->STATE,
+				msg.INTERNAL_TIME, msg.STATE,
 				MESSAGES::MAGIC_BYTE_END);
 	}
 	else if (telMsg.MSG_ID == TELEMETRY::CALIBRATION_DATA::MSG_ID)
@@ -60,7 +65,7 @@ bool TelemetryThread::onLoop(uint64_t time)
 				"%f;%f;%f;"
 				"%f;%f;%f;"
 				"%f;%f;%f;"
-				"%llu;%c;"
+				"%llu;%c"
 				"%c",
 				MESSAGES::MAGIC_BYTE, msgCount++, telMsg.MSG_ID,
 				msg.ACCEL_OFFSET.x, msg.ACCEL_OFFSET.y, msg.ACCEL_OFFSET.z,
@@ -74,7 +79,7 @@ bool TelemetryThread::onLoop(uint64_t time)
 	{
 		TELEMETRY::READING_ERROR msg = *((TELEMETRY::READING_ERROR*) &telMsg);
 		PRINTF("%c%c%c"
-				"%llu;%c;"
+				"%llu;%c"
 				"%c",
 				MESSAGES::MAGIC_BYTE, msgCount++, telMsg.MSG_ID,
 				msg.INTERNAL_TIME, msg.STATE,
@@ -91,7 +96,7 @@ bool TelemetryThread::onLoop(uint64_t time)
 				"%f;%f;%f;"
 				"%f;%f;%f;%f;%f;%f;%f;%f;%f;"
 				"%f;"
-				"%llu;%c;"
+				"%llu;%c"
 				"%c",
 				MESSAGES::MAGIC_BYTE, msgCount++, telMsg.MSG_ID,
 				msg.ACCEL.x, msg.ACCEL.y, msg.ACCEL.z,
@@ -102,6 +107,8 @@ bool TelemetryThread::onLoop(uint64_t time)
 				msg.ROT_MATRIX.r[0][0], msg.ROT_MATRIX.r[0][1], msg.ROT_MATRIX.r[0][2],
 				msg.ROT_MATRIX.r[1][0], msg.ROT_MATRIX.r[1][1], msg.ROT_MATRIX.r[1][2],
 				msg.ROT_MATRIX.r[2][0], msg.ROT_MATRIX.r[2][1], msg.ROT_MATRIX.r[2][2],
+				msg.TEMP,
+				msg.INTERNAL_TIME, msg.STATE,
 				MESSAGES::MAGIC_BYTE_END);
 	}
 

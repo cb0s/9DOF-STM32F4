@@ -14,10 +14,13 @@
 namespace TELECOMMAND {
 	// Object Oriented programming in rodos goes BRRRRRRR :D
 	struct TELECOMMAND_MSG {
-		TELECOMMAND_MSG(const uint8_t msgId) : MSG_ID(msgId)
+		TELECOMMAND_MSG() : TELECOMMAND_MSG(255)
 		{}
 
-		const uint8_t MSG_ID;
+		TELECOMMAND_MSG(uint8_t msgId) : MSG_ID(msgId)
+		{}
+
+		uint8_t MSG_ID;
 	};
 
 	struct CHANGE_STATE : TELECOMMAND_MSG {
@@ -36,8 +39,8 @@ namespace TELECOMMAND {
 		static const uint8_t MSG_ID = 0x2;
 	};
 
-	struct UPDATE_SIGNAL_UPDATE_DELAY : TELECOMMAND_MSG {
-		UPDATE_SIGNAL_UPDATE_DELAY(const uint64_t delay) : TELECOMMAND_MSG(MSG_ID), DELAY(delay)
+	struct UPDATE_SIGNAL_DELAY : TELECOMMAND_MSG {
+		UPDATE_SIGNAL_DELAY(const uint64_t delay) : TELECOMMAND_MSG(MSG_ID), DELAY(delay)
 		{}
 
 		const uint64_t DELAY;
