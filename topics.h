@@ -11,6 +11,7 @@
 #include "rodos.h"
 #include "messages/telemetry.h"
 #include "messages/telecommands.h"
+#include "messages/internal.h"
 #include "states.h"
 
 namespace TOPICS {
@@ -18,6 +19,9 @@ namespace TOPICS {
 	extern Topic<BOARD_STATE> SYSTEM_STATE_TOPIC;
 	extern Topic<uint64_t> SIGNAL_INTERVAL_TOPIC;
 	extern Topic<uint64_t> TELEMETRY_INTERVAL_TOPIC;
+
+	extern Topic<INTERNAL_MSG::CALIBRATION> CURRENT_CAL_TOPIC;
+	extern Topic<INTERNAL_MSG::MEASUREMENT> CURRENT_DAT_TOPIC;
 
 	extern Topic<TELEMETRY::TELEMETRY_MSG> TELEMETRY_TOPIC;
 	extern Topic<TELECOMMAND::TELECOMMAND_MSG> TELECOMMAND_TOPIC;

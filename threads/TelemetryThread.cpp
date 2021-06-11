@@ -12,11 +12,15 @@ TelemetryThread::TelemetryThread(uint64_t delay,
 			RODOS::HAL_GPIO *led,
 			RODOS::CommBuffer<uint64_t> *telemetryIntervalBuffer,
 			RODOS::CommBuffer<TELEMETRY::TELEMETRY_MSG> *telemetryMsgBuffer,
+			RODOS::CommBuffer<INTERNAL_MSG::MEASUREMENT> *measurementBuffer,
+			RODOS::CommBuffer<INTERNAL_MSG::CALIBRATION> *calibrationBuffer,
 			const char* name)
 	: ContinuousThread(delay, led, name),
-	  telemetryIntervalBuffer(telemetryIntervalBuffer),
-	  telemetryMsgBuffer(telemetryMsgBuffer),
-	  msgCount(0)
+		telemetryIntervalBuffer(telemetryIntervalBuffer),
+		telemetryMsgBuffer(telemetryMsgBuffer),
+		calibrationBuffer(calibrationBuffer),
+		measurementBuffer(measurementBuffer),
+		msgCount(0)
 {}
 
 TelemetryThread::~TelemetryThread() {
@@ -32,10 +36,13 @@ bool TelemetryThread::onLoop(uint64_t time)
 {
 	TELEMETRY::TELEMETRY_MSG telMsg(0, 0, BOARD_STATE::RADIO_SILENCE);		// "Empty" msg
 
-	if (!telemetryMsgBuffer->getOnlyIfNewData(telMsg))
-	{	// Nothing to print out
+	if (!telemetryMsgBuffer->getOnlyIfNewData(telMsg) && telMsg.STATE == BOARD_STATE::RADIO_SILENCE)
+	{
+		// Nothing to print out
 		return true;
 	}
+
+	PRINTF("\n\nTelemetry - time %llu msg-id %c state %c\n\n", telMsg.INTERNAL_TIME, telMsg.MSG_ID, telMsg.STATE);
 
 //	uint8_t length = snprintf(NULL, 0, "{}");	// Is promising but I am not sure whether this would work in rodos
 //	length += length % 10;
@@ -47,48 +54,30 @@ bool TelemetryThread::onLoop(uint64_t time)
 		msgCount = MESSAGES::MAGIC_BYTE_END + 1;
 	}
 
-	if (telMsg.MSG_ID == TELEMETRY::ALIVE_SIGNAL::MSG_ID)
+	if (telMsg.MSG_ID == TELEMETRY::CALIBRATION_DATA::MSG_ID)
 	{
-		TELEMETRY::ALIVE_SIGNAL msg = *((TELEMETRY::ALIVE_SIGNAL*) &telMsg);
-		PRINTF("%c%c%c"
-				"%llu;%c"
-				"%c",
-				MESSAGES::MAGIC_BYTE, msgCount++, telMsg.MSG_ID,
-				msg.INTERNAL_TIME, msg.STATE,
-				MESSAGES::MAGIC_BYTE_END);
-	}
-	else if (telMsg.MSG_ID == TELEMETRY::CALIBRATION_DATA::MSG_ID)
-	{
-		TELEMETRY::CALIBRATION_DATA msg = *((TELEMETRY::CALIBRATION_DATA*) &telMsg);
-		PRINTF("%c%c%c"
+		static INTERNAL_MSG::CALIBRATION cal;
+		this->calibrationBuffer->getOnlyIfNewData(cal);
+		PRINTF("%c%c%c%c"
 				"%f;%f;%f;"
 				"%f;%f;%f;"
 				"%f;%f;%f;"
 				"%f;%f;%f;"
 				"%llu;%c"
 				"%c",
-				MESSAGES::MAGIC_BYTE, msgCount++, telMsg.MSG_ID,
-				msg.ACCEL_OFFSET.x, msg.ACCEL_OFFSET.y, msg.ACCEL_OFFSET.z,
-				msg.GYRO_OFFSET.x, msg.GYRO_OFFSET.y, msg.GYRO_OFFSET.z,
-				msg.MAGNET_OFFSET_MIN.x, msg.MAGNET_OFFSET_MIN.y, msg.MAGNET_OFFSET_MIN.z,
-				msg.MAGNET_OFFSET_MAX.x, msg.MAGNET_OFFSET_MAX.y, msg.MAGNET_OFFSET_MAX.z,
-				msg.INTERNAL_TIME, msg.STATE,
-				MESSAGES::MAGIC_BYTE_END);
-	}
-	else if (telMsg.MSG_ID == TELEMETRY::READING_ERROR::MSG_ID)
-	{
-		TELEMETRY::READING_ERROR msg = *((TELEMETRY::READING_ERROR*) &telMsg);
-		PRINTF("%c%c%c"
-				"%llu;%c"
-				"%c",
-				MESSAGES::MAGIC_BYTE, msgCount++, telMsg.MSG_ID,
-				msg.INTERNAL_TIME, msg.STATE,
+				MESSAGES::MAGIC_BYTE, length, msgCount++, telMsg.MSG_ID,
+				cal.ACCEL_OFFSET.x, cal.ACCEL_OFFSET.y, cal.ACCEL_OFFSET.z,
+				cal.GYRO_OFFSET.x, cal.GYRO_OFFSET.y, cal.GYRO_OFFSET.z,
+				cal.MAGNET_OFFSET_MIN.x, cal.MAGNET_OFFSET_MIN.y, cal.MAGNET_OFFSET_MIN.z,
+				cal.MAGNET_OFFSET_MAX.x, cal.MAGNET_OFFSET_MAX.y, cal.MAGNET_OFFSET_MAX.z,
+				telMsg.INTERNAL_TIME, telMsg.STATE,
 				MESSAGES::MAGIC_BYTE_END);
 	}
 	else if (telMsg.MSG_ID == TELEMETRY::SYSTEM_T::MSG_ID)
 	{
-		TELEMETRY::SYSTEM_T msg = *((TELEMETRY::SYSTEM_T*) &telMsg);
-		PRINTF("%c%c%c"
+		static INTERNAL_MSG::MEASUREMENT dat;
+		this->measurementBuffer->getOnlyIfNewData(dat);
+		PRINTF("%c%c%c%c"
 				"%f;%f;%f;"
 				"%f;%f;%f;"
 				"%f;%f;%f;"
@@ -98,17 +87,26 @@ bool TelemetryThread::onLoop(uint64_t time)
 				"%f;"
 				"%llu;%c"
 				"%c",
-				MESSAGES::MAGIC_BYTE, msgCount++, telMsg.MSG_ID,
-				msg.ACCEL.x, msg.ACCEL.y, msg.ACCEL.z,
-				msg.GYRO.x, msg.GYRO.y, msg.GYRO.z,
-				msg.GYRO_SPEED.x, msg.GYRO_SPEED.y, msg.GYRO_SPEED.z,
-				msg.GYRO_GAUSS.x, msg.GYRO_SPEED.y, msg.GYRO_SPEED.z,
-				msg.MAGNET.x, msg.MAGNET.y, msg.MAGNET.z,
-				msg.ROT_MATRIX.r[0][0], msg.ROT_MATRIX.r[0][1], msg.ROT_MATRIX.r[0][2],
-				msg.ROT_MATRIX.r[1][0], msg.ROT_MATRIX.r[1][1], msg.ROT_MATRIX.r[1][2],
-				msg.ROT_MATRIX.r[2][0], msg.ROT_MATRIX.r[2][1], msg.ROT_MATRIX.r[2][2],
-				msg.TEMP,
-				msg.INTERNAL_TIME, msg.STATE,
+				MESSAGES::MAGIC_BYTE, 0, msgCount++, telMsg.MSG_ID,
+				dat.accel.x, dat.accel.y, dat.accel.z,
+				dat.gyro.x, dat.gyro.y, dat.gyro.z,
+				dat.GYRO_SPEED.x, dat.GYRO_SPEED.y, dat.GYRO_SPEED.z,
+				dat.GYRO_GAUSS.x, dat.GYRO_SPEED.y, dat.GYRO_SPEED.z,
+				dat.magnet.x, dat.magnet.y, dat.magnet.z,
+				dat.rotMatrix.r[0][0], dat.rotMatrix.r[0][1], dat.rotMatrix.r[0][2],
+				dat.rotMatrix.r[1][0], dat.rotMatrix.r[1][1], dat.rotMatrix.r[1][2],
+				dat.rotMatrix.r[2][0], dat.rotMatrix.r[2][1], dat.rotMatrix.r[2][2],
+				dat.temp,
+				telMsg.INTERNAL_TIME, telMsg.STATE,
+				MESSAGES::MAGIC_BYTE_END);
+	}
+	else
+	{
+		PRINTF("%c%c%c%c"
+				"%llu;%c"
+				"%c",
+				MESSAGES::MAGIC_BYTE, 0, msgCount++, telMsg.MSG_ID,
+				telMsg.INTERNAL_TIME, telMsg.STATE,
 				MESSAGES::MAGIC_BYTE_END);
 	}
 

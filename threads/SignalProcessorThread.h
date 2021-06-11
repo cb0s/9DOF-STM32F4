@@ -23,10 +23,9 @@ public:
 			Lsm9ds1Hal *sensor,
 			uint32_t i2cFreq,
 
-			TELEMETRY::SYSTEM_T *signalData,
-			TELEMETRY::CALIBRATION_DATA *calibrationData,
-			TELEMETRY::READING_ERROR *readingErrorData,
-			TELEMETRY::ALIVE_SIGNAL *heartBeat,
+			INTERNAL_MSG::MEASUREMENT *dat,
+			INTERNAL_MSG::CALIBRATION *cal,
+			TELEMETRY::TELEMETRY_MSG *msg,
 			RODOS::CommBuffer<BOARD_STATE> *stateBuffer,
 			RODOS::CommBuffer<uint64_t> *signalIntervalBuffer,
 
@@ -61,10 +60,9 @@ private:
 	Lsm9ds1Hal *sensor;
 	uint32_t i2cFreq;
 
-	TELEMETRY::SYSTEM_T *signalData;
-	TELEMETRY::CALIBRATION_DATA *calibrationData;
-	TELEMETRY::READING_ERROR *readingErrorData;
-	TELEMETRY::ALIVE_SIGNAL *heartBeat;
+	TELEMETRY::TELEMETRY_MSG *msg;
+	INTERNAL_MSG::MEASUREMENT *dat;
+	INTERNAL_MSG::CALIBRATION *cal;
 	RODOS::CommBuffer<BOARD_STATE> *stateBuffer;
 	RODOS::CommBuffer<uint64_t> *signalIntervalBuffer;
 

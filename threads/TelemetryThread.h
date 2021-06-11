@@ -12,6 +12,7 @@
 #include "ContinuousThread.h"
 #include "../messages/telemetry.h"
 #include "../messages/messages.h"
+#include "../messages/internal.h"
 
 class TelemetryThread: public ContinuousThread {
 public:
@@ -19,6 +20,8 @@ public:
 			RODOS::HAL_GPIO *led,
 			RODOS::CommBuffer<uint64_t> *telemetryIntervalBuffer,
 			RODOS::CommBuffer<TELEMETRY::TELEMETRY_MSG> *telemetryMsgBuffer,
+			RODOS::CommBuffer<INTERNAL_MSG::MEASUREMENT> *measurementBuffer,
+			RODOS::CommBuffer<INTERNAL_MSG::CALIBRATION> *calibrationBuffer,
 			const char* name = "Anonymous-TelemetryThread");
 	virtual ~TelemetryThread();
 
@@ -29,6 +32,8 @@ public:
 private:
 	RODOS::CommBuffer<uint64_t> *telemetryIntervalBuffer;
 	RODOS::CommBuffer<TELEMETRY::TELEMETRY_MSG> *telemetryMsgBuffer;
+	RODOS::CommBuffer<INTERNAL_MSG::CALIBRATION> *calibrationBuffer;
+	RODOS::CommBuffer<INTERNAL_MSG::MEASUREMENT> *measurementBuffer;
 
 	uint8_t msgCount;
 };

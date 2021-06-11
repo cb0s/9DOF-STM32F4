@@ -11,6 +11,8 @@
 #include "devices/stm32f4.h"
 
 #include "messages/telemetry.h"
+#include "messages/telecommands.h"
+#include "messages/internal.h"
 
 #include "sensors/constants/lsm9ds1_const.h"
 #include "sensors/i2c/lsm9ds1_i2c.h"
@@ -23,7 +25,7 @@
 
 #include "topics.h"
 
-
+// Sensor
 HAL_I2C i2cDev(I2C_IDX2);
 Lsm9ds1Hal sensor(&i2cDev);
 
@@ -51,15 +53,16 @@ uint64_t readTime = 0;
 uint64_t aliveTime = 0;
 
 // Message Objects
-TELEMETRY::SYSTEM_T signalData(acc, gyro, gyroSpeed, gyroGauss, magnet, rotMatrix, temp, systemTime);
-TELEMETRY::CALIBRATION_DATA calibrationData(accelOff, gyroOff, magnOffMin, magnOffMax, calTime);
-TELEMETRY::READING_ERROR readingErrorData(readTime);
-TELEMETRY::ALIVE_SIGNAL aliveSignalData(aliveTime);
+TELEMETRY::TELEMETRY_MSG telMsg;
+INTERNAL_MSG::CALIBRATION calMsg;
+INTERNAL_MSG::MEASUREMENT datMsg;
 
 // Comm-Buffers
 RODOS::CommBuffer<BOARD_STATE> stateBuffer;
 RODOS::CommBuffer<uint64_t> signalIntervalBuffer;
 RODOS::CommBuffer<uint64_t> telemetryIntervalBuffer;
+RODOS::CommBuffer<INTERNAL_MSG::MEASUREMENT> measurementBuffer;
+RODOS::CommBuffer<INTERNAL_MSG::CALIBRATION> calibrationBuffer;
 RODOS::CommBuffer<TELEMETRY::TELEMETRY_MSG> telemetryMsgBuffer;
 RODOS::CommBuffer<TELECOMMAND::TELECOMMAND_MSG> telecommandBuffer;
 
@@ -67,6 +70,8 @@ RODOS::CommBuffer<TELECOMMAND::TELECOMMAND_MSG> telecommandBuffer;
 RODOS::Subscriber stateSubscriber(TOPICS::SYSTEM_STATE_TOPIC, stateBuffer, "SYSTEM_STATE_S");
 RODOS::Subscriber signalIntervalSubscriber(TOPICS::SIGNAL_INTERVAL_TOPIC, signalIntervalBuffer, "SIGNAL_INTERVAL_S");
 RODOS::Subscriber telemetryIntervalSubscriber(TOPICS::TELEMETRY_INTERVAL_TOPIC, telemetryIntervalBuffer, "TELEMETRY_INTERVAL_S");
+RODOS::Subscriber currentMeasurementSubscriber(TOPICS::CURRENT_DAT_TOPIC, measurementBuffer, "MEASUREMENT_INTERNAL_S");
+RODOS::Subscriber currentCalibrationSubscriber(TOPICS::CURRENT_CAL_TOPIC, calibrationBuffer, "CALIBRATION_INTERNAL_S");
 RODOS::Subscriber telemetryMsgSubscriber(TOPICS::TELEMETRY_TOPIC, telemetryMsgBuffer, "TELEMETRY_MSG_S");
 RODOS::Subscriber telecommandSubscriber(TOPICS::TELECOMMAND_TOPIC, telecommandBuffer, "TELECOMMAND_MSG_S");
 
@@ -81,11 +86,10 @@ HAL_UART uart(UART_IDX1);
 
 // Threads
 SignalProcessorThread signalThread(&sensor,
-		400000,
-		&signalData,
-		&calibrationData,
-		&readingErrorData,
-		&aliveSignalData,
+		LSM9DS1_I2C::FREQ,
+		&datMsg,
+		&calMsg,
+		&telMsg,
 		&stateBuffer,
 		&signalIntervalBuffer,
 		&gpioRed,
@@ -105,5 +109,6 @@ TelemetryThread telemetryThread(10*MILLISECONDS,
 		&gpioBlue,
 		&telemetryIntervalBuffer,
 		&telemetryMsgBuffer,
+		&measurementBuffer,
+		&calibrationBuffer,
 		"TelemetryThread");
-

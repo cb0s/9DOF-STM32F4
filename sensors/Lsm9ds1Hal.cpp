@@ -140,8 +140,6 @@ bool Lsm9ds1Hal::readTemp(float &temp)
 		return false;
 	}
 
-	PRINTF("\n\rTEMP: %c%c\n\r", dataBuffer[1], dataBuffer[0]);
-
 	int16_t tempBits = (((int16_t) dataBuffer[0]) << 8 | dataBuffer[1]) & 0b0000111111111111;
 
 	// For signed numbers
@@ -152,11 +150,7 @@ bool Lsm9ds1Hal::readTemp(float &temp)
 		tempBits |= 0xF000;
 	}
 
-	PRINTF("\n\rTEMP2: %d\n\r", tempBits);
-
 	temp = (float) tempBits / LSM9DS1_GENERAL_CONSTANTS::TEMP_NORM_FACTOR + LSM9DS1_GENERAL_CONSTANTS::NORM_TEMP;
-
-	PRINTF("\n\rTEMP3: %f\n\r", temp);
 
 	UTILS::clearBuffer(dataBuffer, 2);
 	return true;
@@ -164,12 +158,19 @@ bool Lsm9ds1Hal::readTemp(float &temp)
 
 bool Lsm9ds1Hal::readAcceleration(Vector3D &acc)
 {
-	readGxlI2c(&LSM9DS1_GXL_REGS::OUT_X_XL_L, dataBuffer, 6);
+	if (!this->	readGxlI2c(&LSM9DS1_GXL_REGS::OUT_X_XL_L, dataBuffer, 6))
+	{
+		return false;
+	}
+
+	PRINTF("\n\nACCEL - %c%c%c%c%c%c\n\n", dataBuffer[0], dataBuffer[1], dataBuffer[2], dataBuffer[3], dataBuffer[4], dataBuffer[5]);
 
 	// All values must be converted from mg's to g's
 	acc.x = 	(float) static_cast<int16_t>((dataBuffer[1] << 8) | dataBuffer[0]) * this->linearAccelSens / 1000.0;
 	acc.y = 	(float) static_cast<int16_t>((dataBuffer[3] << 8) | dataBuffer[2]) * this->linearAccelSens / 1000.0;
 	acc.z = -1*	(float) static_cast<int16_t>((dataBuffer[5] << 8) | dataBuffer[4]) * this->linearAccelSens / 1000.0;
+
+	PRINTF("\nACCEL2 - %f %f %f\n\n", acc.x, acc.y, acc.z);
 
 	UTILS::clearBuffer(dataBuffer, 6);
 	return true;
@@ -177,7 +178,10 @@ bool Lsm9ds1Hal::readAcceleration(Vector3D &acc)
 
 bool Lsm9ds1Hal::readRotation(Vector3D &rot)
 {
-	readGxlI2c(&LSM9DS1_GXL_REGS::OUT_X_G_L, dataBuffer, 6);
+	if (!this->	readGxlI2c(&LSM9DS1_GXL_REGS::OUT_X_G_L, dataBuffer, 6))
+	{
+		return false;
+	}
 
 	// All values must be converted from mdps to dps
 	rot.x = (float) static_cast<int16_t>((dataBuffer[1] << 8) | dataBuffer[0]) * this->angularRateSens / 1000.0;
@@ -190,7 +194,10 @@ bool Lsm9ds1Hal::readRotation(Vector3D &rot)
 
 bool Lsm9ds1Hal::readMagneticField(Vector3D &mag)
 {
-	readMI2c(&LSM9DS1_M_REGS::OUT_X_M_L, dataBuffer, 6);
+	if (!this->	readMI2c(&LSM9DS1_M_REGS::OUT_X_M_L, dataBuffer, 6))
+	{
+		return false;
+	}
 
 	// All values must be converted from mgauss to gauss
 	mag.x = -1*	(float) static_cast<int16_t>((dataBuffer[1] << 8) | dataBuffer[0]) * this->magneticSens / 1000.0;
@@ -210,7 +217,7 @@ bool Lsm9ds1Hal::detectSensor(I2cDevice *device, Register *whoAmI, uint8_t expec
 	{
 		this->readI2c(device, whoAmI, dataBuffer, 1);
 
-		if (dataBuffer[0] == LSM9DS1_I2C::GYRO_ACCEL.ADDRESS)
+		if (dataBuffer[0] == expectedValue)
 		{
 			return true;
 		}
@@ -244,22 +251,22 @@ float Lsm9ds1Hal::getMagneticSens()
 	return magneticSens;
 }
 
-bool inline Lsm9ds1Hal::readGxlI2c(Register *reg, uint8_t data[], size_t bytesToRead)
+bool Lsm9ds1Hal::readGxlI2c(Register *reg, uint8_t data[], size_t bytesToRead)
 {
 	return this->readI2c(&LSM9DS1_I2C::GYRO_ACCEL, reg, data, bytesToRead);
 }
 
-bool inline Lsm9ds1Hal::writeGxlI2c(Register *reg, uint8_t data[], size_t bytesToWrite)
+bool Lsm9ds1Hal::writeGxlI2c(Register *reg, uint8_t data[], size_t bytesToWrite)
 {
 	return this->writeI2c(&LSM9DS1_I2C::GYRO_ACCEL, reg, data, bytesToWrite);
 }
 
-bool inline Lsm9ds1Hal::readMI2c(Register *reg, uint8_t data[], size_t bytesToRead)
+bool Lsm9ds1Hal::readMI2c(Register *reg, uint8_t data[], size_t bytesToRead)
 {
 	return this->readI2c(&LSM9DS1_I2C::MAGNETOMETER, reg, data, bytesToRead);
 }
 
-bool inline Lsm9ds1Hal::writeMI2c(Register *reg, uint8_t data[], size_t bytesToWrite)
+bool Lsm9ds1Hal::writeMI2c(Register *reg, uint8_t data[], size_t bytesToWrite)
 {
 	return this->writeI2c(&LSM9DS1_I2C::MAGNETOMETER, reg, data, bytesToWrite);
 }

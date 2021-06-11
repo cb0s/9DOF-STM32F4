@@ -10,10 +10,10 @@
 SignalProcessorThread::SignalProcessorThread(
 		Lsm9ds1Hal *sensor,
 		uint32_t i2cFreq,
-		TELEMETRY::SYSTEM_T *signalData,
-		TELEMETRY::CALIBRATION_DATA *calibrationData,
-		TELEMETRY::READING_ERROR *readingErrorData,
-		TELEMETRY::ALIVE_SIGNAL *heartBeat,
+
+		INTERNAL_MSG::MEASUREMENT *dat,
+		INTERNAL_MSG::CALIBRATION *cal,
+		TELEMETRY::TELEMETRY_MSG *msg,
 		RODOS::CommBuffer<BOARD_STATE> *stateBuffer,
 		RODOS::CommBuffer<uint64_t> *signalIntervalBuffer,
 
@@ -23,20 +23,19 @@ SignalProcessorThread::SignalProcessorThread(
 		RODOS::HAL_GPIO *LED,
 		const char *name)
 	: ContinuousThread(DELAY, LED, name),
-	  sensor(sensor),
-	  i2cFreq(i2cFreq),
-	  signalData(signalData),
-	  calibrationData(calibrationData),
-	  readingErrorData(readingErrorData),
-	  heartBeat(heartBeat),
-	  stateBuffer(stateBuffer),
-	  signalIntervalBuffer(signalIntervalBuffer),
-	  lastRead(0),
-	  radioSilenceSent(false),
-	  state(BOARD_STATE::NORMAL),
-	  calibrationLed(calibrationLed),
-	  calibrationProcess(0),
-	  calBlinky(0)
+		sensor(sensor),
+		i2cFreq(i2cFreq),
+		msg(msg),
+		dat(dat),
+		cal(cal),
+		stateBuffer(stateBuffer),
+		signalIntervalBuffer(signalIntervalBuffer),
+		lastRead(0),
+		radioSilenceSent(false),
+		state(BOARD_STATE::NORMAL),
+		calibrationLed(calibrationLed),
+		calibrationProcess(0),
+		calBlinky(0)
 {}
 
 SignalProcessorThread::~SignalProcessorThread()
@@ -45,49 +44,48 @@ SignalProcessorThread::~SignalProcessorThread()
 void SignalProcessorThread::prepare()
 {
 	sensor->init(i2cFreq);
+	msg->STATE = BOARD_STATE::NORMAL;
 }
 
 bool SignalProcessorThread::onLoop(uint64_t time)
 {
 	if (this->stateBuffer->getOnlyIfNewData(state))
 	{
-		signalData->STATE = state;
-		calibrationData->STATE = state;
-		readingErrorData->STATE = state;
-		heartBeat->STATE = state;
+		msg->STATE = state;
+		radioSilenceSent = false;
 	}
 
 	this->signalIntervalBuffer->getOnlyIfNewData(DELAY);
 
 	bool error = false;
-	heartBeat->INTERNAL_TIME = time;
-	readingErrorData->INTERNAL_TIME = time;
+	msg->INTERNAL_TIME = time;
+	msg->MSG_ID = TELEMETRY::ALIVE_SIGNAL::MSG_ID;
 
 	switch(state)
 	{
 	case BOARD_STATE::RADIO_SILENCE:		// That the sender knows RADIO-Silence was received
 		if (!radioSilenceSent)
 		{
-			PRINTF("\n\rRADIO_SILECNCE\n\r");
 			radioSilenceSent = true;
-			TOPICS::TELEMETRY_TOPIC.publish(*heartBeat);
+			TOPICS::TELEMETRY_TOPIC.publish(*msg);
 		}
 		return true;
 	case BOARD_STATE::REQUEST_CAL_INFO:
-		TOPICS::TELEMETRY_TOPIC.publish(*calibrationData);
+		TOPICS::TELEMETRY_TOPIC.publish(*msg);
 		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::NORMAL);
 		return true;
 	case BOARD_STATE::NORMAL:
 		if (!measure(time))
 		{
-			PRINTF("\n\rNORMAL_ERROR\n\r");
-			TOPICS::TELEMETRY_TOPIC.publish(*readingErrorData);
+			msg->MSG_ID = TELEMETRY::READING_ERROR::MSG_ID;
+			TOPICS::TELEMETRY_TOPIC.publish(*msg);
 		}
 		else
 		{
-			TOPICS::TELEMETRY_TOPIC.publish(*signalData);
+			msg->MSG_ID = TELEMETRY::SYSTEM_T::MSG_ID;
+			TOPICS::CURRENT_DAT_TOPIC.publish(*dat);
+			TOPICS::TELEMETRY_TOPIC.publish(*msg);
 		}
-		radioSilenceSent = false;
 		return true;
 	case BOARD_STATE::CALIBRATE_ACCEL:
 		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_ACCEL_X);
@@ -124,14 +122,17 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 		break;
 	case BOARD_STATE::CALIBRATE_FINAL:
 		this->calibrationProcess = 0;
-		this->calibrationData->INTERNAL_TIME = time;
+		this->msg->INTERNAL_TIME = time;
 		for (uint8_t i = 0; i < 3; i++)
 		{
 			this->calVals[i].x = 0;
 			this->calVals[i].y = 0;
 			this->calVals[i].z = 0;
 		}
-		TOPICS::TELEMETRY_TOPIC.publish(*calibrationData);
+
+		TOPICS::CURRENT_CAL_TOPIC.publish(*cal);
+		msg->MSG_ID = TELEMETRY::CALIBRATION_DATA::MSG_ID;
+		TOPICS::TELEMETRY_TOPIC.publish(*msg);
 
 		LED->setPins(true);
 		return true;
@@ -142,11 +143,12 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 	// Being here means being in the calibration process
 	if (error)
 	{
-		TOPICS::TELEMETRY_TOPIC.publish(*readingErrorData);
+		msg->MSG_ID = TELEMETRY::READING_ERROR::MSG_ID;
+		TOPICS::TELEMETRY_TOPIC.publish(*msg);
 	}
 	else
 	{
-		TOPICS::TELEMETRY_TOPIC.publish(*heartBeat);
+		TOPICS::TELEMETRY_TOPIC.publish(*msg);
 	}
 
 	return true;
@@ -162,19 +164,19 @@ bool SignalProcessorThread::measure(uint64_t time)
 
 	if (!(sensor->readTemp(temp) && sensor->readAcceleration(accel) && sensor->readRotation(rot) &&	sensor->readMagneticField(flux)))
 	{
-		this->readingErrorData->INTERNAL_TIME = time;
+		this->msg->INTERNAL_TIME = time;
 		return false;
 	}
 
-	accel = accel - this->calibrationData->ACCEL_OFFSET;
-	rot = rot - this->calibrationData->GYRO_OFFSET;
+	accel = accel - this->cal->ACCEL_OFFSET;
+	rot = rot - this->cal->GYRO_OFFSET;
 
-	flux.x = (flux.x-this->calibrationData->MAGNET_OFFSET_MIN.x) /
-			(this->calibrationData->MAGNET_OFFSET_MAX.x-this->calibrationData->MAGNET_OFFSET_MIN.x) * 2 - 1;
-	flux.y = (flux.y-this->calibrationData->MAGNET_OFFSET_MIN.y) /
-			(this->calibrationData->MAGNET_OFFSET_MAX.y-this->calibrationData->MAGNET_OFFSET_MIN.y) * 2 - 1;
-	flux.z = (flux.z-this->calibrationData->MAGNET_OFFSET_MIN.z) /
-			(this->calibrationData->MAGNET_OFFSET_MAX.z-this->calibrationData->MAGNET_OFFSET_MIN.z) * 2 - 1;
+	flux.x = (flux.x-this->cal->MAGNET_OFFSET_MIN.x) /
+			(this->cal->MAGNET_OFFSET_MAX.x-this->cal->MAGNET_OFFSET_MIN.x) * 2 - 1;
+	flux.y = (flux.y-this->cal->MAGNET_OFFSET_MIN.y) /
+			(this->cal->MAGNET_OFFSET_MAX.y-this->cal->MAGNET_OFFSET_MIN.y) * 2 - 1;
+	flux.z = (flux.z-this->cal->MAGNET_OFFSET_MIN.z) /
+			(this->cal->MAGNET_OFFSET_MAX.z-this->cal->MAGNET_OFFSET_MIN.z) * 2 - 1;
 
 	uint64_t deltaT = lastRead == 0 ? 0 : lastRead - time;
 
@@ -197,7 +199,7 @@ bool SignalProcessorThread::measure(uint64_t time)
 			{-sinRoll, cosRoll * tanPitch, cosRoll / cosPitch});
 
 	RPY dtRotEul = gyroMatrix * rot;
-	RPY finalRot = this->signalData->GYRO_GAUSS + dtRotEul * deltaT;
+	RPY finalRot = this->dat->GYRO_GAUSS + dtRotEul * deltaT;
 
 	// Tilt compensation
 	Vector3D correctedFlux;
@@ -205,15 +207,15 @@ bool SignalProcessorThread::measure(uint64_t time)
 	correctedFlux.y = flux.x * sinRoll * sinPitch + flux.y * cosRoll - flux.z * sinRoll * cosPitch;
 	correctedFlux.z = flux.z;
 
-	this->signalData->ACCEL = accel;
-	this->signalData->GYRO = rot;
-	this->signalData->GYRO_SPEED = dtRotEul;
-	this->signalData->GYRO_GAUSS = finalRot;
-	this->signalData->ROT_MATRIX = rotMatrix;
-	this->signalData->MAGNET = correctedFlux;
-	this->signalData->TEMP = temp;
+	this->dat->accel = accel;
+	this->dat->gyro = rot;
+	this->dat->GYRO_SPEED = dtRotEul;
+	this->dat->GYRO_GAUSS = finalRot;
+	this->dat->rotMatrix = rotMatrix;
+	this->dat->magnet = correctedFlux;
+	this->dat->temp = temp;
 
-	this->signalData->INTERNAL_TIME = time;
+	this->dat->internalTime = time;
 
 	return true;
 }
@@ -263,9 +265,9 @@ bool SignalProcessorThread::calibrateAccel(uint64_t time)
 	}
 	else if (calibrationProcess == 3*CALIBRATION_SAMPLES)
 	{
-		this->calibrationData->ACCEL_OFFSET.x = (this->calVals[0].x + this->calVals[2].x) / (CALIBRATION_SAMPLES * 2);
-		this->calibrationData->ACCEL_OFFSET.y = (this->calVals[0].y + this->calVals[1].y) / (CALIBRATION_SAMPLES * 2);
-		this->calibrationData->ACCEL_OFFSET.z = (this->calVals[1].z + this->calVals[2].z) / (CALIBRATION_SAMPLES * 2);
+		this->cal->ACCEL_OFFSET.x = (this->calVals[0].x + this->calVals[2].x) / (CALIBRATION_SAMPLES * 2);
+		this->cal->ACCEL_OFFSET.y = (this->calVals[0].y + this->calVals[1].y) / (CALIBRATION_SAMPLES * 2);
+		this->cal->ACCEL_OFFSET.z = (this->calVals[1].z + this->calVals[2].z) / (CALIBRATION_SAMPLES * 2);
 
 		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_FINAL);
 	}
@@ -288,7 +290,7 @@ bool SignalProcessorThread::calibrateGyro(uint64_t time)
 	calibrationProcess++;
 	if (calibrationProcess == CALIBRATION_SAMPLES)
 	{
-		this->calibrationData->GYRO_OFFSET = this->calVals[0] / CALIBRATION_SAMPLES;
+		this->cal->GYRO_OFFSET = this->calVals[0] / CALIBRATION_SAMPLES;
 	}
 
 	return true;
@@ -323,13 +325,13 @@ bool SignalProcessorThread::calibrateMagn(uint64_t time)
 	}
 	else if (calibrationProcess == 3*CALIBRATION_SAMPLES)
 	{
-		calibrationData->MAGNET_OFFSET_MIN.x = calVals[0].x;
-		calibrationData->MAGNET_OFFSET_MIN.y = calVals[0].y;
-		calibrationData->MAGNET_OFFSET_MIN.z = calVals[0].z;
+		cal->MAGNET_OFFSET_MIN.x = calVals[0].x;
+		cal->MAGNET_OFFSET_MIN.y = calVals[0].y;
+		cal->MAGNET_OFFSET_MIN.z = calVals[0].z;
 
-		calibrationData->MAGNET_OFFSET_MAX.x = calVals[1].x;
-		calibrationData->MAGNET_OFFSET_MAX.y = calVals[1].y;
-		calibrationData->MAGNET_OFFSET_MAX.z = calVals[1].z;
+		cal->MAGNET_OFFSET_MAX.x = calVals[1].x;
+		cal->MAGNET_OFFSET_MAX.y = calVals[1].y;
+		cal->MAGNET_OFFSET_MAX.z = calVals[1].z;
 
 		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_FINAL);
 	}
