@@ -42,7 +42,7 @@ bool TelemetryThread::onLoop(uint64_t time)
 		return true;
 	}
 
-	PRINTF("\n\nTelemetry - time %llu msg-id %c state %c\n\n", telMsg.INTERNAL_TIME, telMsg.MSG_ID, telMsg.STATE);
+//	PRINTF("\n\nTelemetry - time %llu msg-id %c state %c\n\n", telMsg.INTERNAL_TIME, telMsg.MSG_ID, telMsg.STATE);
 
 //	uint8_t length = snprintf(NULL, 0, "{}");	// Is promising but I am not sure whether this would work in rodos
 //	length += length % 10;

@@ -23,24 +23,27 @@ TelecommandThread::TelecommandThread(uint64_t delay,
 	  currentMsgSize(0)
 {}
 
-TelecommandThread::~TelecommandThread() {
-	// TODO Auto-generated destructor stub
-}
+TelecommandThread::~TelecommandThread()
+{}
 
 void TelecommandThread::prepare()
 {
 	UTILS::clearBuffer(messageBuffer, BUFFER_LENGTH);
 
 	// Might not be working according to friends
-	this->uart->init(baudRate);
+//	this->uart->init(baudRate);
 
-	this->uart->config(RODOS::UART_PARAMETER_ENABLE_DMA, 1);
-	this->uart->config(RODOS::UART_PARAMETER_BAUDRATE, baudRate);
+//	this->uart->config(RODOS::UART_PARAMETER_ENABLE_DMA, 1);
+//	this->uart->config(RODOS::UART_PARAMETER_BAUDRATE, baudRate);
 }
 
 bool TelecommandThread::onLoop(uint64_t time)
 {
+	PRINTF("WAITING FOR TCs\n");
+
 	this->uart->suspendUntilDataReady();
+
+	PRINTF("TEST\n");
 
 	uint64_t wait = this->lastMsgBegin + this->timeOut;
 	if (this->lastMsgBegin != 0 && (wait <= timeOut ? END_OF_TIME : wait) <= RODOS::NOW())

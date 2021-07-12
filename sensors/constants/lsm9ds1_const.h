@@ -30,6 +30,9 @@ namespace LSM9DS1_GENERAL_CONSTANTS {
 	extern float MAGNETIC_SENS_8GAUSS;
 	extern float MAGNETIC_SENS_12GAUSS;
 	extern float MAGNETIC_SENS_16GAUSS;
+
+	extern uint8_t SLAVE_ADDRESS_GXL;
+	extern uint8_t SLAVE_ADDRESS_M;
 }
 
 #endif /* SENSORS_CONSTANTS_LSM9DS1_CONST_H_ */

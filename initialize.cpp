@@ -17,7 +17,7 @@
 #include "sensors/constants/lsm9ds1_const.h"
 #include "sensors/i2c/lsm9ds1_i2c.h"
 #include "sensors/registers/registers.h"
-#include "sensors/Lsm9ds1Hal.h"
+#include "sensors/Lsm9ds1HalSpi.h"
 
 #include "threads/SignalProcessorThread.h"
 #include "threads/TelecommandThread.h"
@@ -26,8 +26,10 @@
 #include "topics.h"
 
 // Sensor
-HAL_I2C i2cDev(I2C_IDX2);
-Lsm9ds1Hal sensor(&i2cDev);
+static HAL_GPIO csAG(GPIO_006);
+static HAL_GPIO csM(GPIO_041);
+static HAL_SPI lsm9ds1_spi(SPI_IDX1, GPIO_019, GPIO_020, GPIO_021);
+Lsm9ds1HalSpi sensor(&lsm9ds1_spi, &csAG, &csM);
 
 // System T
 Vector3D acc(0, 0, 0);
@@ -81,12 +83,14 @@ HAL_GPIO gpioRed((GPIO_PIN) STM32F4::BOARD_LEDS::LED_RED);
 HAL_GPIO gpioGreen((GPIO_PIN) STM32F4::BOARD_LEDS::LED_GREEN);
 HAL_GPIO gpioOrange((GPIO_PIN) STM32F4::BOARD_LEDS::LED_ORANGE);
 
-// Uart
-HAL_UART uart(UART_IDX1);
+//// Uart
+//HAL_UART uart(UART_IDX1);
+namespace RODOS {
+	extern HAL_UART uart_stdout;
+}
 
 // Threads
 SignalProcessorThread signalThread(&sensor,
-		LSM9DS1_I2C::FREQ,
 		&datMsg,
 		&calMsg,
 		&telMsg,
@@ -99,7 +103,7 @@ SignalProcessorThread signalThread(&sensor,
 
 TelecommandThread telecommandThread(5000*MILLISECONDS,
 		&gpioOrange,
-		&uart,
+		&uart_stdout,
 		115200,
 		END_OF_TIME,
 		&stateBuffer,

@@ -8,8 +8,7 @@
 #include "SignalProcessorThread.h"
 
 SignalProcessorThread::SignalProcessorThread(
-		Lsm9ds1Hal *sensor,
-		uint32_t i2cFreq,
+		Lsm9ds1HalSpi *sensor,
 
 		INTERNAL_MSG::MEASUREMENT *dat,
 		INTERNAL_MSG::CALIBRATION *cal,
@@ -24,7 +23,6 @@ SignalProcessorThread::SignalProcessorThread(
 		const char *name)
 	: ContinuousThread(DELAY, LED, name),
 		sensor(sensor),
-		i2cFreq(i2cFreq),
 		msg(msg),
 		dat(dat),
 		cal(cal),
@@ -43,7 +41,7 @@ SignalProcessorThread::~SignalProcessorThread()
 
 void SignalProcessorThread::prepare()
 {
-	sensor->init(i2cFreq);
+	sensor->initLsm9ds1();
 	msg->STATE = BOARD_STATE::NORMAL;
 }
 

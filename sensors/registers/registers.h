@@ -40,4 +40,19 @@ struct Register
 	const int16_t DEFAULT;
 };
 
+namespace REG_HELPERS {
+	/**
+	 * Returns whether the register can be accessed in the requested way.
+	 *
+	 * @param reg				Pointer to register to check
+	 * @param requestedAccess	Desired access to the register
+	 * @param allowedRegs		Pointer of array of allowed registers in general
+	 * @param allowedRegsSize	Size of the array allowedRegs
+	 *
+	 * @return if all checked registers can be accessed in the specified way
+	 */
+	extern bool checkRegister(const Register *reg, const REGISTER_ACCESS requestedAccess, const Register **allowedRegs,
+			const size_t allowedRegsSize);
+}
+
 #endif /* SENSORS_REGISTERS_REGISTERS_H_ */

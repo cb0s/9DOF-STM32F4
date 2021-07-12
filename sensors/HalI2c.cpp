@@ -5,21 +5,21 @@
  *      Author: Cedric Boes
  */
 
-#include "Hal.h"
+#include "HalI2c.h"
 
-Hal::Hal(HAL_I2C *i2cDevice) : I2C_DEVICE(i2cDevice)
+HalI2c::HalI2c(HAL_I2C *i2cDevice) : I2C_DEVICE(i2cDevice)
 {}
 
-Hal::~Hal()
+HalI2c::~HalI2c()
 {}
 
-bool Hal::init(uint32_t i2cFreq)
+bool HalI2c::init(uint32_t i2cFreq)
 {
 	UTILS::clearBuffer(this->writeBuffer, WRITE_BUFFER_LENGTH);
 	return initI2c(i2cFreq) && setup();
 }
 
-bool Hal::initI2c(uint32_t freq)
+bool HalI2c::initI2c(uint32_t freq)
 {
 	if (this->I2C_DEVICE == NULL || this->I2C_DEVICE == nullptr)
 	{
@@ -29,22 +29,7 @@ bool Hal::initI2c(uint32_t freq)
 	return (I2C_DEVICE->init(freq) == 0) && setupI2c();
 }
 
-bool Hal::checkRegister(const Register *reg, const REGISTER_ACCESS requestedAccess, const Register **allowedRegs,
-		const size_t allowedRegsSize)
-{
-	for (int i = 0; i < allowedRegsSize; i++)
-	{
-		if (reg->ADDRESS == allowedRegs[i]->ADDRESS)
-		{
-			return (requestedAccess & REGISTER_ACCESS::READ_ONLY) <= (reg->ACCESS & REGISTER_ACCESS::READ_ONLY) &&
-					(requestedAccess & REGISTER_ACCESS::WRITE_ONLY) <= (reg->ACCESS & REGISTER_ACCESS::WRITE_ONLY);
-		}
-	}
-
-	return false;
-}
-
-bool Hal::checkI2cAccess(I2cDevice *counterPart, Register *reg, uint8_t accessCount, REGISTER_ACCESS access)
+bool HalI2c::checkI2cAccess(I2cDevice *counterPart, Register *reg, uint8_t accessCount, REGISTER_ACCESS access)
 {
 	uint8_t lastAddr = 0x0;
 	size_t addrIndex = SIZE_MAX;
@@ -61,14 +46,14 @@ bool Hal::checkI2cAccess(I2cDevice *counterPart, Register *reg, uint8_t accessCo
 		}
 	}
 
-	if (regToTest == nullptr || lastAddr + accessCount > counterPart->AVAILABLE_REGS_COUNT)
+	if (regToTest == nullptr || (addrIndex + accessCount) > counterPart->AVAILABLE_REGS_COUNT)
 	{
 		return false;
 	}
 
 	size_t i = 1;
 	do {
-		bool result = this->checkRegister(regToTest, access, counterPart->AVAILABLE_REGS, counterPart->AVAILABLE_REGS_COUNT);
+		bool result = REG_HELPERS::checkRegister(regToTest, access, counterPart->AVAILABLE_REGS, counterPart->AVAILABLE_REGS_COUNT);
 
 		regToTest = counterPart->AVAILABLE_REGS[addrIndex + i];
 		if (!result || (lastAddr - regToTest->ADDRESS) < -1)
@@ -81,7 +66,7 @@ bool Hal::checkI2cAccess(I2cDevice *counterPart, Register *reg, uint8_t accessCo
 	return true;
 }
 
-bool Hal::readI2c(I2cDevice *device, Register *reg, uint8_t dataBuffer[], size_t bytesToRead)
+bool HalI2c::readI2c(I2cDevice *device, Register *reg, uint8_t *dataBuffer, size_t bytesToRead)
 {
 	if (!this->checkI2cAccess(device, reg, bytesToRead, REGISTER_ACCESS::READ_ONLY))
 	{
@@ -98,7 +83,7 @@ bool Hal::readI2c(I2cDevice *device, Register *reg, uint8_t dataBuffer[], size_t
 	return true;
 }
 
-bool Hal::writeI2c(I2cDevice *device, Register *reg, uint8_t dataBuffer[], size_t bytesToWrite)
+bool HalI2c::writeI2c(I2cDevice *device, Register *reg, uint8_t *dataBuffer, size_t bytesToWrite)
 {
 	if (!this->checkI2cAccess(device, reg, bytesToWrite, REGISTER_ACCESS::WRITE_ONLY))
 	{

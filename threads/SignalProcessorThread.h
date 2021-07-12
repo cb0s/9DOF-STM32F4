@@ -12,7 +12,7 @@
 #include "ContinuousThread.h"
 #include "../topics.h"
 #include "../messages/telemetry.h"
-#include "../sensors/Lsm9ds1Hal.h"
+#include "../sensors/Lsm9ds1HalSpi.h"
 
 #define CALIBRATION_SAMPLES 100
 #define CALIBRATION_BLINKS 200
@@ -20,8 +20,7 @@
 class SignalProcessorThread: public ContinuousThread {
 public:
 	SignalProcessorThread(
-			Lsm9ds1Hal *sensor,
-			uint32_t i2cFreq,
+			Lsm9ds1HalSpi *sensor,
 
 			INTERNAL_MSG::MEASUREMENT *dat,
 			INTERNAL_MSG::CALIBRATION *cal,
@@ -57,8 +56,7 @@ private:
 	uint16_t calBlinky;
 	Vector3D calVals[3];
 
-	Lsm9ds1Hal *sensor;
-	uint32_t i2cFreq;
+	Lsm9ds1HalSpi *sensor;
 
 	TELEMETRY::TELEMETRY_MSG *msg;
 	INTERNAL_MSG::MEASUREMENT *dat;

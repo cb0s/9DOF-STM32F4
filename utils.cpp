@@ -18,7 +18,7 @@ void UTILS::clearBuffer(uint8_t *buffer, size_t length)
 void UTILS::blockingDelay(uint64_t nanoDelay)
 {
 	uint64_t start = RODOS::NOW();
-	while (RODOS::NOW() < start + nanoDelay);
+	while (RODOS::NOW() < start + (int64_t) nanoDelay) asm("nop");;
 }
 
 uint64_t UTILS::bufferToUInt64T(uint8_t *buffer)

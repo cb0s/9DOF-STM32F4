@@ -133,7 +133,7 @@ Register *LSM9DS1_GXL_REGS::USED_GXL[] = {
 		NULL
 };
 
-size_t LSM9DS1_GXL_REGS::SIZE_GXL = UTILS::arrayLength(LSM9DS1_GXL_REGS::USED_GXL);
+size_t LSM9DS1_GXL_REGS::SIZE_GXL = UTILS::arrayLength(const_cast<const Register**>(LSM9DS1_GXL_REGS::USED_GXL));
 
 
 Register LSM9DS1_M_REGS::OFFSET_X_REG_M_L(0x05, REGISTER_ACCESS::READ_WRITE, 0);
@@ -197,4 +197,4 @@ Register *LSM9DS1_M_REGS::USED_M[] = {
 		NULL
 };
 
-size_t LSM9DS1_M_REGS::SIZE_M = UTILS::arrayLength(LSM9DS1_M_REGS::USED_M);
+size_t LSM9DS1_M_REGS::SIZE_M = UTILS::arrayLength(const_cast<const Register**>(LSM9DS1_M_REGS::USED_M));

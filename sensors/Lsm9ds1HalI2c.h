@@ -10,15 +10,15 @@
 #include "rodos.h"
 #include "matlib.h"
 #include "../utils.h"
-#include "Hal.h"
+#include "HalI2c.h"
 #include "constants/lsm9ds1_const.h"
 #include "i2c/lsm9ds1_i2c.h"
 #include "registers/lsm9ds1_reg.h"
 
-class Lsm9ds1Hal : public Hal {
+class Lsm9ds1HalI2c : public HalI2c {
 public:
-	Lsm9ds1Hal(HAL_I2C *device);
-	virtual ~Lsm9ds1Hal();
+	Lsm9ds1HalI2c(HAL_I2C *device);
+	virtual ~Lsm9ds1HalI2c();
 
 	bool initLsm9ds1();
 
@@ -39,10 +39,10 @@ private:
 	// Blocking operation
 	bool detectSensor(I2cDevice *device, Register *whoAmI, uint8_t expectedValue);
 
-	bool inline readGxlI2c(Register* reg, uint8_t data[], size_t bytesToRead);
-	bool inline writeGxlI2c(Register* reg, uint8_t data[], size_t bytesToWrite);
-	bool inline readMI2c(Register* reg, uint8_t data[], size_t bytesToRead);
-	bool inline writeMI2c(Register* reg, uint8_t data[], size_t bytesToWrite);
+	bool inline readGxlI2c(Register* reg, uint8_t *data, size_t bytesToRead);
+	bool inline writeGxlI2c(Register* reg, uint8_t *data, size_t bytesToWrite);
+	bool inline readMI2c(Register* reg, uint8_t *data, size_t bytesToRead);
+	bool inline writeMI2c(Register* reg, uint8_t *data, size_t bytesToWrite);
 
 	uint8_t dataBuffer[6];
 

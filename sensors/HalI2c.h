@@ -14,18 +14,18 @@
 #include "registers/registers.h"
 
 /**
- * Write-buffer size for the Hal-Classes.
+ * Write-buffer size for the HalI2c-Classes.
  */
 #define WRITE_BUFFER_LENGTH 8
 
-class Hal {
+class HalI2c {
 public:
 	/**
 	 * Must be called from the extending class.<br>
-	 * This basically calls the {@link Hal#init()}.
+	 * This basically calls the {@link HalI2c#init()}.
 	 */
-	Hal(HAL_I2C *device);
-	virtual ~Hal();
+	HalI2c(HAL_I2C *device);
+	virtual ~HalI2c();
 
 	/**
 	 * Sets up a sensor.<br>
@@ -40,7 +40,7 @@ public:
 	virtual bool setupI2c() = 0;
 
 	/**
-	 * Initializes the Hal-Class in general. This means all init() methods will be called<br>
+	 * Initializes the HalI2c-Class in general. This means all init() methods will be called<br>
 	 * After that #setup() is called to complete the initialize process.<br>
 	 * <br>
 	 * Breaks if only one method fails.
@@ -66,26 +66,12 @@ public:
 	 *
 	 * @return whether the specified Register was valid and readable
 	 */
-	bool readI2c(I2cDevice *device, Register *reg, uint8_t dataBuffer[], size_t bytesToRead);
+	bool readI2c(I2cDevice *device, Register *reg, uint8_t *dataBuffer, size_t bytesToRead);
 
 	/**
 	 * Writes the data from buffer to the I2C-Device at the given address.
 	 */
-	bool writeI2c(I2cDevice *device, Register *reg, uint8_t buffer[], size_t bytesToWrite);
-
-protected:
-	/**
-	 * Returns whether the register can be accessed in the requested way.
-	 *
-	 * @param reg				Pointer to register to check
-	 * @param requestedAccess	Desired access to the register
-	 * @param allowedRegs		Pointer of array of allowed registers in general
-	 * @param allowedRegsSize	Size of the array allowedRegs
-	 *
-	 * @return if all checked registers can be accessed in the specified way
-	 */
-	bool checkRegister(const Register *reg, const REGISTER_ACCESS requestedAccess, const Register **allowedRegs,
-			const size_t allowedRegsSize);
+	bool writeI2c(I2cDevice *device, Register *reg, uint8_t *buffer, size_t bytesToWrite);
 
 private:
 	/**
