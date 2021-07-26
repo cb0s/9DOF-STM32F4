@@ -16,7 +16,7 @@
 
 namespace TOPICS {
 	// application state
-	extern Topic<BOARD_STATE> SYSTEM_STATE_TOPIC;
+	extern Topic<uint8_t> SYSTEM_STATE_TOPIC;
 	extern Topic<uint64_t> SIGNAL_INTERVAL_TOPIC;
 	extern Topic<uint64_t> TELEMETRY_INTERVAL_TOPIC;
 

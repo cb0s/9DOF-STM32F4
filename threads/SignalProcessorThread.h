@@ -25,7 +25,7 @@ public:
 			INTERNAL_MSG::MEASUREMENT *dat,
 			INTERNAL_MSG::CALIBRATION *cal,
 			TELEMETRY::TELEMETRY_MSG *msg,
-			RODOS::CommBuffer<BOARD_STATE> *stateBuffer,
+			RODOS::CommBuffer<uint8_t> *stateBuffer,
 			RODOS::CommBuffer<uint64_t> *signalIntervalBuffer,
 
 			RODOS::HAL_GPIO *calibrationLed,
@@ -61,7 +61,7 @@ private:
 	TELEMETRY::TELEMETRY_MSG *msg;
 	INTERNAL_MSG::MEASUREMENT *dat;
 	INTERNAL_MSG::CALIBRATION *cal;
-	RODOS::CommBuffer<BOARD_STATE> *stateBuffer;
+	RODOS::CommBuffer<uint8_t> *stateBuffer;
 	RODOS::CommBuffer<uint64_t> *signalIntervalBuffer;
 
 	RODOS::HAL_GPIO *calibrationLed;

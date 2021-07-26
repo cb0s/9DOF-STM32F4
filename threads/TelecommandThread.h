@@ -26,7 +26,7 @@ public:
 			RODOS::HAL_UART *UART,
 			uint32_t baudRate,
 			uint64_t timeOut,
-			RODOS::CommBuffer<BOARD_STATE> *stateBuffer,
+			RODOS::CommBuffer<uint8_t> *stateBuffer,
 			const char* name = "Anonymous-TelecommandThread");
 	virtual ~TelecommandThread();
 
@@ -37,7 +37,7 @@ public:
 private:
 	RODOS::HAL_UART *uart;
 	const uint32_t baudRate;
-	RODOS::CommBuffer<BOARD_STATE> *stateBuffer;
+	RODOS::CommBuffer<uint8_t> *stateBuffer;
 	uint64_t lastMsgBegin;
 	const uint64_t timeOut;
 	uint8_t messageBuffer[BUFFER_LENGTH];

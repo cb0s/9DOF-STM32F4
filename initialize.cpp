@@ -31,7 +31,7 @@ static HAL_GPIO csM(GPIO_041);
 static HAL_SPI lsm9ds1_spi(SPI_IDX1, GPIO_019, GPIO_020, GPIO_021);
 Lsm9ds1HalSpi sensor(&lsm9ds1_spi, &csAG, &csM);
 
-// System T
+// SystemT
 Vector3D acc(0, 0, 0);
 Vector3D gyro(0, 0, 0);
 Vector3D gyroSpeed(0, 0, 0);
@@ -60,7 +60,7 @@ INTERNAL_MSG::CALIBRATION calMsg;
 INTERNAL_MSG::MEASUREMENT datMsg;
 
 // Comm-Buffers
-RODOS::CommBuffer<BOARD_STATE> stateBuffer;
+RODOS::CommBuffer<uint8_t> stateBuffer;
 RODOS::CommBuffer<uint64_t> signalIntervalBuffer;
 RODOS::CommBuffer<uint64_t> telemetryIntervalBuffer;
 RODOS::CommBuffer<INTERNAL_MSG::MEASUREMENT> measurementBuffer;
@@ -101,7 +101,7 @@ SignalProcessorThread signalThread(&sensor,
 		&gpioGreen,
 		"SignalProcessorThread");
 
-TelecommandThread telecommandThread(5000*MILLISECONDS,
+TelecommandThread telecommandThread(MILLISECONDS,
 		&gpioOrange,
 		&uart_stdout,
 		115200,
@@ -109,7 +109,7 @@ TelecommandThread telecommandThread(5000*MILLISECONDS,
 		&stateBuffer,
 		"TelecommandThread");
 
-TelemetryThread telemetryThread(10*MILLISECONDS,
+TelemetryThread telemetryThread(1000*MILLISECONDS,
 		&gpioBlue,
 		&telemetryIntervalBuffer,
 		&telemetryMsgBuffer,

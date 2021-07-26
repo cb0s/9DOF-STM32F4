@@ -13,7 +13,7 @@ SignalProcessorThread::SignalProcessorThread(
 		INTERNAL_MSG::MEASUREMENT *dat,
 		INTERNAL_MSG::CALIBRATION *cal,
 		TELEMETRY::TELEMETRY_MSG *msg,
-		RODOS::CommBuffer<BOARD_STATE> *stateBuffer,
+		RODOS::CommBuffer<uint8_t> *stateBuffer,
 		RODOS::CommBuffer<uint64_t> *signalIntervalBuffer,
 
 		RODOS::HAL_GPIO *calibrationLed,
@@ -43,12 +43,21 @@ void SignalProcessorThread::prepare()
 {
 	sensor->initLsm9ds1();
 	msg->STATE = BOARD_STATE::NORMAL;
+	TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(BOARD_STATE::NORMAL));
 }
 
 bool SignalProcessorThread::onLoop(uint64_t time)
 {
-	if (this->stateBuffer->getOnlyIfNewData(state))
+	uint8_t localStateRaw;
+	this->stateBuffer->get(localStateRaw);
+	BOARD_STATE localState = static_cast<BOARD_STATE>(localStateRaw);
+
+	PRINTF("LOCAL_STATE %d\n", localState);
+
+	if (localState != state)
 	{
+		state = localState;
+		PRINTF("\nState-change - %d\n", state);
 		msg->STATE = state;
 		radioSilenceSent = false;
 	}
@@ -69,24 +78,27 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 		}
 		return true;
 	case BOARD_STATE::REQUEST_CAL_INFO:
+		msg->MSG_ID = TELEMETRY::CALIBRATION_DATA::MSG_ID;
 		TOPICS::TELEMETRY_TOPIC.publish(*msg);
-		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::NORMAL);
+		PRINTF("Helo\n");
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(BOARD_STATE::NORMAL));
+		PRINTF("Helo 2\n");
 		return true;
 	case BOARD_STATE::NORMAL:
 		if (!measure(time))
 		{
 			msg->MSG_ID = TELEMETRY::READING_ERROR::MSG_ID;
 			TOPICS::TELEMETRY_TOPIC.publish(*msg);
+			return true;
 		}
-		else
-		{
-			msg->MSG_ID = TELEMETRY::SYSTEM_T::MSG_ID;
-			TOPICS::CURRENT_DAT_TOPIC.publish(*dat);
-			TOPICS::TELEMETRY_TOPIC.publish(*msg);
-		}
+
+		// else
+		msg->MSG_ID = TELEMETRY::SYSTEM_T::MSG_ID;
+		TOPICS::CURRENT_DAT_TOPIC.publish(*dat);
+		TOPICS::TELEMETRY_TOPIC.publish(*msg);
 		return true;
 	case BOARD_STATE::CALIBRATE_ACCEL:
-		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_ACCEL_X);
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(BOARD_STATE::CALIBRATE_ACCEL_X));
 		break;
 	case BOARD_STATE::CALIBRATE_ACCEL_X:
 	case BOARD_STATE::CALIBRATE_ACCEL_Y:
@@ -100,7 +112,7 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 		this->calVals[0].x = 0b01111111100000000000000000000000;	// = Inf
 		this->calVals[0].y = 0b01111111100000000000000000000000;	// = Inf
 		this->calVals[0].z = 0b01111111100000000000000000000000;	// = Inf
-		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_MAGN_X);
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(BOARD_STATE::CALIBRATE_MAGN_X));
 		break;
 	case BOARD_STATE::CALIBRATE_MAGN_X:
 	case BOARD_STATE::CALIBRATE_MAGN_Y:
@@ -115,7 +127,7 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 			calBlinky = 0;
 			calibrationLed->setPins(false);
 
-			TOPICS::SYSTEM_STATE_TOPIC.publish(calState);
+			TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(calState));
 		}
 		break;
 	case BOARD_STATE::CALIBRATE_FINAL:
@@ -135,7 +147,7 @@ bool SignalProcessorThread::onLoop(uint64_t time)
 		LED->setPins(true);
 		return true;
 	default:
-		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::NORMAL);
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(BOARD_STATE::NORMAL));
 	}
 
 	// Being here means being in the calibration process
@@ -253,13 +265,13 @@ bool SignalProcessorThread::calibrateAccel(uint64_t time)
 	{
 		calState = BOARD_STATE::CALIBRATE_ACCEL_Y;
 
-		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_WARN);
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(BOARD_STATE::CALIBRATE_WARN));
 	}
 	else if (calibrationProcess == 2*CALIBRATION_SAMPLES)
 	{
 		calState = BOARD_STATE::CALIBRATE_ACCEL_Z;
 
-		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_WARN);
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(BOARD_STATE::CALIBRATE_WARN));
 	}
 	else if (calibrationProcess == 3*CALIBRATION_SAMPLES)
 	{
@@ -267,7 +279,7 @@ bool SignalProcessorThread::calibrateAccel(uint64_t time)
 		this->cal->ACCEL_OFFSET.y = (this->calVals[0].y + this->calVals[1].y) / (CALIBRATION_SAMPLES * 2);
 		this->cal->ACCEL_OFFSET.z = (this->calVals[1].z + this->calVals[2].z) / (CALIBRATION_SAMPLES * 2);
 
-		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_FINAL);
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(BOARD_STATE::CALIBRATE_FINAL));
 	}
 
 	return true;
@@ -313,13 +325,13 @@ bool SignalProcessorThread::calibrateMagn(uint64_t time)
 	{
 		calState = BOARD_STATE::CALIBRATE_MAGN_Y;
 
-		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_WARN);
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(BOARD_STATE::CALIBRATE_WARN));
 	}
 	else if (calibrationProcess == 2*CALIBRATION_SAMPLES)
 	{
 		calState = BOARD_STATE::CALIBRATE_MAGN_Z;
 
-		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_WARN);
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(BOARD_STATE::CALIBRATE_WARN));
 	}
 	else if (calibrationProcess == 3*CALIBRATION_SAMPLES)
 	{
@@ -331,7 +343,7 @@ bool SignalProcessorThread::calibrateMagn(uint64_t time)
 		cal->MAGNET_OFFSET_MAX.y = calVals[1].y;
 		cal->MAGNET_OFFSET_MAX.z = calVals[1].z;
 
-		TOPICS::SYSTEM_STATE_TOPIC.publishConst(BOARD_STATE::CALIBRATE_FINAL);
+		TOPICS::SYSTEM_STATE_TOPIC.publishConst(static_cast<uint8_t>(BOARD_STATE::CALIBRATE_FINAL));
 	}
 
 	return true;

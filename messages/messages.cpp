@@ -28,7 +28,7 @@ MESSAGES::MESSAGE MESSAGES::INVALID_MSG(MESSAGES::HEADER(255, 255, 255), nullptr
 
 MESSAGES::MESSAGE MESSAGES::parseRaw(uint8_t *rawMessage, size_t bufferLength)
 {
-	if (bufferLength < HEADER_LENGTH || rawMessage[0] != MESSAGES::MAGIC_BYTE || rawMessage[bufferLength] != MESSAGES::MAGIC_BYTE_END)
+	if (bufferLength < HEADER_LENGTH || rawMessage[0] != MESSAGES::MAGIC_BYTE || rawMessage[bufferLength-1] != MESSAGES::MAGIC_BYTE_END)
 	{
 		// Unsuccessful because there is not even a complete header and at minimum a complete header is required
 		return MESSAGES::INVALID_MSG;

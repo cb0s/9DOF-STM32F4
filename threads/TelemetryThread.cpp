@@ -65,7 +65,7 @@ bool TelemetryThread::onLoop(uint64_t time)
 				"%f;%f;%f;"
 				"%llu;%c"
 				"%c",
-				MESSAGES::MAGIC_BYTE, length, msgCount++, telMsg.MSG_ID,
+				MESSAGES::MAGIC_BYTE, length, msgCount, telMsg.MSG_ID,
 				cal.ACCEL_OFFSET.x, cal.ACCEL_OFFSET.y, cal.ACCEL_OFFSET.z,
 				cal.GYRO_OFFSET.x, cal.GYRO_OFFSET.y, cal.GYRO_OFFSET.z,
 				cal.MAGNET_OFFSET_MIN.x, cal.MAGNET_OFFSET_MIN.y, cal.MAGNET_OFFSET_MIN.z,
@@ -87,7 +87,7 @@ bool TelemetryThread::onLoop(uint64_t time)
 				"%f;"
 				"%llu;%c"
 				"%c",
-				MESSAGES::MAGIC_BYTE, 0, msgCount++, telMsg.MSG_ID,
+				MESSAGES::MAGIC_BYTE, length, msgCount, telMsg.MSG_ID,
 				dat.accel.x, dat.accel.y, dat.accel.z,
 				dat.gyro.x, dat.gyro.y, dat.gyro.z,
 				dat.GYRO_SPEED.x, dat.GYRO_SPEED.y, dat.GYRO_SPEED.z,
@@ -105,10 +105,12 @@ bool TelemetryThread::onLoop(uint64_t time)
 		PRINTF("%c%c%c%c"
 				"%llu;%c"
 				"%c",
-				MESSAGES::MAGIC_BYTE, 0, msgCount++, telMsg.MSG_ID,
+				MESSAGES::MAGIC_BYTE, length, msgCount, telMsg.MSG_ID,
 				telMsg.INTERNAL_TIME, telMsg.STATE,
 				MESSAGES::MAGIC_BYTE_END);
 	}
+
+	msgCount++;
 
 	telemetryIntervalBuffer->getOnlyIfNewData(DELAY);
 	return true;
